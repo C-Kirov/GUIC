@@ -1,0 +1,60 @@
+#ifndef RESOURCE_H
+#define RESOURCE_H
+
+// 图标
+#define IDI_ICON1 101
+
+// 对话框资源 ID
+#define IDD_MESSAGE_DIALOG           2001
+#define IDD_COUNTDOWN_ONCE_DIALOG    2002
+#define IDD_COUNTDOWN_DAILY_DIALOG   2003
+#define IDD_WINDOW_SETTINGS_DIALOG   2004
+#define IDD_FONT_SETTINGS_DIALOG     2005
+#define IDD_COLOR_SETTINGS_DIALOG    2006
+#define IDD_SPECIAL_DAY_DIALOG       2007
+#define IDD_PREVIEW_MESSAGE_DIALOG   2008
+#define IDD_WORLD_CLOCK_DIALOG       2009
+#define IDD_ANALOG_CLOCK_DIALOG      2010
+
+// 菜单项 ID
+#define ID_MENU_SET_MESSAGE       40001
+#define ID_MENU_SET_COUNTDOWN_ONCE 40002
+#define ID_MENU_SET_COUNTDOWN_DAILY 40003
+#define ID_MENU_TOGGLE_CLOCK      40004
+#define ID_MENU_TOGGLE_COUNTDOWN  40005
+#define ID_MENU_TOGGLE_LAYOUT     40006
+#define ID_MENU_SETTINGS_WINDOW   40007
+#define ID_MENU_SETTINGS_FONT     40008
+#define ID_MENU_SETTINGS_COLOR    40009
+#define ID_MENU_ADD_SPECIAL_DAY   40010
+#define ID_MENU_PREVIEW_MESSAGE   40011
+#define ID_MENU_WORLD_CLOCK       40012
+#define ID_MENU_ANALOG_CLOCK      40013
+#define ID_MENU_TOGGLE_MESSAGE    40014
+
+// 控件 ID
+#define IDC_EDIT_MESSAGE                1000
+#define IDC_EDIT_ONCE_TIME              1001
+#define IDC_EDIT_DAILY_TIME             1002
+#define IDC_STATIC                      1003
+#define IDC_EDIT_DAILY_REMARK           1004
+#define IDC_CHECK_RESIZABLE             1005
+#define IDC_EDIT_WINDOW_WIDTH           1006
+#define IDC_EDIT_WINDOW_HEIGHT          1007
+#define IDC_EDIT_FONT_SIZE              1008
+#define IDC_EDIT_FONT_NAME              1009
+#define IDC_BUTTON_COLOR                1010
+#define IDC_EDIT_NAME                   1011
+#define IDC_EDIT_MONTH                  1012
+#define IDC_EDIT_DAY                    1013
+#define IDC_CHECK_ANNUAL                1014
+#define IDC_EDIT_YEAR                   1015
+#define IDC_CHECK_SOLAR_TERM            1016
+#define IDC_EDIT_HOUR                   1017
+#define IDC_EDIT_MINUTE                 1018
+#define IDC_EDIT_PREVIEW_MESSAGE        1019
+#define IDC_LIST_WORLD_CLOCKS           1020
+#define IDC_STATIC_WORLD_CLOCK_DISPLAY  1021
+#define IDC_STATIC_ANALOG_CLOCK         1022
+
+#endif // RESOURCE_H

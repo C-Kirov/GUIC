@@ -1,0 +1,349 @@
+# depslib dependency file v1.0
+1774175200 source:c:\users\czz18\desktop\guic2.0\main.cpp
+	<windows.h>
+	"main.h"
+	"config/config.h"
+	"utils/logger.h"
+	"resource.h"
+
+1774174928 c:\users\czz18\desktop\guic2.0\resource.h
+
+1774176835 source:c:\users\czz18\desktop\guic2.0\dialogs\dialog_message.cpp
+	"dialog_message.h"
+	"../config/config.h"
+	"../utils/logger.h"
+	"../main.h"
+
+1774152763 c:\users\czz18\desktop\guic2.0\dialogs\dialog_message.h
+	<windows.h>
+
+1774177597 c:\users\czz18\desktop\guic2.0\config\config.h
+	<windows.h>
+	<string>
+	<vector>
+
+1774152731 c:\users\czz18\desktop\guic2.0\utils\logger.h
+	<string>
+
+1774177634 source:c:\users\czz18\desktop\guic2.0\windowproc.cpp
+	"main.h"
+	"config/config.h"
+	"utils/logger.h"
+	"dialogs/dialog_message.h"
+	"dialogs/dialog_countdown.h"
+	"dialogs/dialog_settings.h"
+	"dialogs/dialog_special.h"
+	"resource.h"
+
+1774177580 c:\users\czz18\desktop\guic2.0\main.h
+	<windows.h>
+
+1774152786 c:\users\czz18\desktop\guic2.0\dialogs\dialog_countdown.h
+	<windows.h>
+
+1774152822 c:\users\czz18\desktop\guic2.0\dialogs\dialog_settings.h
+	<windows.h>
+
+1774152852 c:\users\czz18\desktop\guic2.0\dialogs\dialog_special.h
+	<windows.h>
+
+1774153560 source:c:\users\czz18\desktop\guic2.0\dialogs\dialog_countdown.cpp
+	"dialog_countdown.h"
+	"../config/config.h"
+	"../utils/logger.h"
+	"../main.h"
+	<cstdio>
+
+1774153576 source:c:\users\czz18\desktop\guic2.0\dialogs\dialog_settings.cpp
+	"dialog_settings.h"
+	"../config/config.h"
+	"../utils/logger.h"
+	"../main.h"
+	<cstdio>
+
+1774177731 source:c:\users\czz18\desktop\guic2.0\dialogs\dialog_special.cpp
+	"dialog_special.h"
+	"../config/config.h"
+	"../utils/logger.h"
+	"../main.h"
+	<cstdio>
+	<vector>
+	<string>
+	<ctime>
+	<cmath>
+	<algorithm>
+
+1774274254 source:c:\users\czz18\desktop\guic2.0\config\config.cpp
+	"config.h"
+	"../utils/logger.h"
+	"../utils/utils.h"
+	"../utils/network.h"
+	"../main.h"
+	<fstream>
+	<sstream>
+	<cstring>
+	<cstdio>
+
+1774152708 c:\users\czz18\desktop\guic2.0\utils\utils.h
+	<string>
+	<cstring>
+
+1774152740 source:c:\users\czz18\desktop\guic2.0\utils\logger.cpp
+	"logger.h"
+	"utils.h"
+	<windows.h>
+	<fstream>
+	<sstream>
+	<ctime>
+
+1774152717 source:c:\users\czz18\desktop\guic2.0\utils\utils.cpp
+	"utils.h"
+	<windows.h>
+	<fstream>
+
+1775273732 source:c:\users\czz18\desktop\guic2.0\resource.rc
+	"resource.h"
+
+1774273373 c:\users\czz18\desktop\guic2.0\utils\network.h
+	<windows.h>
+
+1774273903 source:c:\users\czz18\desktop\guic2.0\utils\network.cpp
+	<winsock2.h>
+	<ws2tcpip.h>
+	<cstdio>
+	<cstring>
+	"network.h"
+	"logger.h"
+
+1777973121 source:c:\users\czz18\desktop\guic2.0\src\resource.rc
+	<windows.h>
+	"resource.h"
+
+1777972852 c:\users\czz18\desktop\guic2.0\src\resource.h
+
+1775904625 source:c:\users\czz18\desktop\guic2.0\src\utils\logger.cpp
+	"logger.h"
+	"utils.h"
+	<windows.h>
+	<fstream>
+	<sstream>
+	<ctime>
+
+1775904611 c:\users\czz18\desktop\guic2.0\src\utils\logger.h
+	<string>
+
+1775904578 c:\users\czz18\desktop\guic2.0\src\utils\utils.h
+	<string>
+	<cstring>
+
+1775904601 source:c:\users\czz18\desktop\guic2.0\src\utils\utils.cpp
+	"utils.h"
+	<windows.h>
+	<fstream>
+
+1777973981 source:c:\users\czz18\desktop\guic2.0\src\config\config.cpp
+	"config.h"
+	"../utils/logger.h"
+	"../utils/utils.h"
+	"../utils/network.h"
+	"../main.h"
+	<fstream>
+	<sstream>
+	<cstring>
+	<cstdio>
+
+1777971825 c:\users\czz18\desktop\guic2.0\src\config\config.h
+	<windows.h>
+	<string>
+	<vector>
+
+1775904637 c:\users\czz18\desktop\guic2.0\src\utils\network.h
+	<windows.h>
+
+1777972841 c:\users\czz18\desktop\guic2.0\src\main.h
+	<windows.h>
+	"resource.h"
+
+1777972891 source:c:\users\czz18\desktop\guic2.0\src\dialogs\dialog_countdown.cpp
+	"dialog_countdown.h"
+	"../config/config.h"
+	"../utils/logger.h"
+	"../main.h"
+	<cstdio>
+
+1775904736 c:\users\czz18\desktop\guic2.0\src\dialogs\dialog_countdown.h
+	<windows.h>
+
+1777972880 source:c:\users\czz18\desktop\guic2.0\src\dialogs\dialog_message.cpp
+	"dialog_message.h"
+	"../config/config.h"
+	"../utils/logger.h"
+	"../main.h"
+
+1775904709 c:\users\czz18\desktop\guic2.0\src\dialogs\dialog_message.h
+	<windows.h>
+
+1777972901 source:c:\users\czz18\desktop\guic2.0\src\dialogs\dialog_settings.cpp
+	"dialog_settings.h"
+	"../config/config.h"
+	"../utils/logger.h"
+	"../main.h"
+	<cstdio>
+
+1775904763 c:\users\czz18\desktop\guic2.0\src\dialogs\dialog_settings.h
+	<windows.h>
+
+1778393797 source:c:\users\czz18\desktop\guic2.0\src\main.cpp
+	<windows.h>
+	"main.h"
+	"config/config.h"
+	"utils/logger.h"
+	"resource.h"
+
+1778393797 source:c:\users\czz18\desktop\guic2.0\src\windowproc.cpp
+	"main.h"
+	"config/config.h"
+	"utils/logger.h"
+	"utils/renderer.h"
+	"dialogs/dialog_message.h"
+	"dialogs/dialog_countdown.h"
+	"dialogs/dialog_settings.h"
+	"dialogs/dialog_special.h"
+	"resource.h"
+
+1775904797 c:\users\czz18\desktop\guic2.0\src\dialogs\dialog_special.h
+	<windows.h>
+
+1778398727 source:c:\users\czz18\desktop\guic2.0\src\dialogs\dialog_special.cpp
+	"dialog_special.h"
+	"../config/config.h"
+	"../utils/logger.h"
+	"../main.h"
+	<cstdio>
+	<vector>
+	<string>
+	<algorithm>
+	<cmath>
+
+1748454782 c:\users\czz18\desktop\guic2.0\third_party\date-3.0.4\include\date\tz.h
+	"date.h"
+	"tz_private.h"
+	<algorithm>
+	<atomic>
+	<cassert>
+	<chrono>
+	<istream>
+	<locale>
+	<memory>
+	<mutex>
+	<ostream>
+	<sstream>
+	<stdexcept>
+	<string>
+	<type_traits>
+	<utility>
+	<vector>
+
+1748454782 c:\users\czz18\desktop\guic2.0\third_party\date-3.0.4\include\date\date.h
+	<cassert>
+	<algorithm>
+	<cctype>
+	<chrono>
+	<climits>
+	<cmath>
+	<cstddef>
+	<cstdint>
+	<cstdlib>
+	<ctime>
+	<ios>
+	<istream>
+	<iterator>
+	<limits>
+	<locale>
+	<memory>
+	<ostream>
+	<ratio>
+	<sstream>
+	<stdexcept>
+	<string>
+	<string_view>
+	<utility>
+	<type_traits>
+
+1748454782 c:\users\czz18\desktop\guic2.0\third_party\date-3.0.4\include\date\tz_private.h
+	"tz.h"
+	"date.h"
+	<vector>
+	"tz.h"
+
+1778399146 source:c:\users\czz18\desktop\guic2.0\src\utils\network.cpp
+	<winsock2.h>
+	<ws2tcpip.h>
+	<cstdio>
+	<cstring>
+	<cstdint>
+	<vector>
+	<string>
+	<algorithm>
+	"network.h"
+	"logger.h"
+
+1748454782 source:c:\users\czz18\desktop\guic2.0\third_party\date-3.0.4\src\tz.cpp
+	<initguid.h>
+	<knownfolders.h>
+	<windows.h>
+	"date/tz_private.h"
+	"date/ios.h"
+	<sys/system_properties.h>
+	<dirent.h>
+	<algorithm>
+	<cctype>
+	<cstdlib>
+	<cstring>
+	<cwchar>
+	<exception>
+	<fstream>
+	<iostream>
+	<iterator>
+	<memory>
+	<queue>
+	<sstream>
+	<string>
+	<tuple>
+	<vector>
+	<sys/stat.h>
+	<winapifamily.h>
+	<io.h>
+	<shlobj.h>
+	<direct.h>
+	<shellapi.h>
+	<unistd.h>
+	<wordexp.h>
+	<limits.h>
+	<string.h>
+	<sys/stat.h>
+	<sys/fcntl.h>
+	<dirent.h>
+	<cstring>
+	<sys/wait.h>
+	<sys/types.h>
+	<curl.h>
+	<curl/curl.h>
+
+1748454782 c:\users\czz18\desktop\guic2.0\third_party\date-3.0.4\include\date\ios.h
+	<TargetConditionals.h>
+	<string>
+
+1777970588 source:c:\users\czz18\desktop\guic2.0\src\utils\renderer.cpp
+	"renderer.h"
+	"../config/config.h"
+	"utils.h"
+	"gdi_utils.h"
+	<cstdio>
+
+1777970564 c:\users\czz18\desktop\guic2.0\src\utils\renderer.h
+	<windows.h>
+
+1777970542 c:\users\czz18\desktop\guic2.0\src\utils\gdi_utils.h
+	<windows.h>
+

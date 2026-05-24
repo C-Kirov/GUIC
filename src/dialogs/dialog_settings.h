@@ -1,0 +1,10 @@
+#ifndef DIALOG_SETTINGS_H
+#define DIALOG_SETTINGS_H
+
+#include <windows.h>
+
+void ShowWindowSettingsDialog(HWND parent);
+void ShowFontSettingsDialog(HWND parent);
+void ShowColorSettingsDialog(HWND parent);
+
+#endif // DIALOG_SETTINGS_H

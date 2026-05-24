@@ -1,0 +1,39 @@
+GUIC2.0/
+├── src/                          # 源代码主目录（原各文件平铺，现归类）
+│   ├── main.cpp                  # 程序入口，创建窗口和消息循环
+│   ├── windowproc.cpp            # 主窗口过程函数（处理所有窗口消息）
+│   ├── resource.h                # 资源ID定义（菜单、对话框、控件）
+│   ├── resource.rc               # 资源脚本（菜单、对话框、图标）
+│   │
+│   ├── config/
+│   │   ├── config.h              # 全局配置声明（变量、枚举、函数）
+│   │   ├── config.cpp            # 全局配置实现（配置加载/保存、特殊日子管理、绘图）
+│   │   └── special_days.h        # 特殊日子结构定义（已合并至config.h，保留为空）
+│   │
+│   ├── utils/
+│   │   ├── utils.h               # 工具函数声明（ReadWorkFile等）
+│   │   ├── utils.cpp             # 工具函数实现（读取work.txt）
+│   │   ├── logger.h              # 日志系统声明
+│   │   ├── logger.cpp            # 日志系统实现（写日志、系统信息）
+│   │   ├── network.h             # 网络时间同步声明
+│   │   └── network.cpp           # NTP 客户端实现
+│   │
+│   ├── dialogs/
+│   │   ├── dialog_base.h         # 对话框基类（预留）
+│   │   ├── dialog_message.h      # 设置提示信息对话框声明
+│   │   ├── dialog_message.cpp    # 设置提示信息对话框实现
+│   │   ├── dialog_countdown.h    # 倒计时设置对话框声明
+│   │   ├── dialog_countdown.cpp  # 倒计时设置对话框实现（一次性/每日）
+│   │   ├── dialog_settings.h     # 窗口/字体/颜色设置对话框声明
+│   │   ├── dialog_settings.cpp   # 窗口/字体/颜色设置对话框实现
+│   │   ├── dialog_special.h      # 特殊日子相关对话框声明（含世界时钟、模拟时钟）
+│   │   └── dialog_special.cpp    # 特殊日子相关对话框实现（含基于date库的夏令时支持）
+│   │
+│   └── GUIC_2.0.ico              # 程序图标
+│
+├── docs/                         # 文档
+│   └── 架构.txt                 # 项目架构说明
+│
+├── build/                        # 编译输出目录
+│
+├── GUIC2.0.cbp                   # Code::Blocks 项目文件
