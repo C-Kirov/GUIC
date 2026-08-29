@@ -85,7 +85,7 @@ static const char* g_stringsZH[] = {
     "自定义NTP服务器 (留空使用默认):",     // STR_NTP_SERVER_LABEL
     "关于 GUIC 2.0",                       // STR_ABOUT_TITLE
     "GUIC 2.0 - 图形化时钟",               // STR_ABOUT_DESC
-    "版本 2.0.1",                          // STR_ABOUT_VERSION
+    "版本 %d.%d.%d.%d",                   // STR_ABOUT_VERSION
     "功能: 时钟/倒计时/农历/天气/世界时钟", // STR_ABOUT_FEATURES
     "NTP校时/局域网NTP服务器/Web控制面板",  // STR_ABOUT_NETWORK
     "编译: MinGW-w64 + C++14",             // STR_ABOUT_COMPILE
@@ -210,7 +210,7 @@ static const char* g_stringsEN[] = {
     "Custom NTP server (empty for default):", // STR_NTP_SERVER_LABEL
     "About GUIC 2.0",                       // STR_ABOUT_TITLE
     "GUIC 2.0 - GUI Clock",                 // STR_ABOUT_DESC
-    "Version 2.0.1",                        // STR_ABOUT_VERSION
+    "Version %d.%d.%d.%d",                 // STR_ABOUT_VERSION
     "Features: clock/countdown/lunar/weather/world clock", // STR_ABOUT_FEATURES
     "NTP sync / LAN NTP server / Web control panel", // STR_ABOUT_NETWORK
     "Built with: MinGW-w64 + C++14",        // STR_ABOUT_COMPILE

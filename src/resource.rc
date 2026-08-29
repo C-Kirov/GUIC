@@ -3,6 +3,41 @@
 
 CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "GUIC_2.0.manifest"
 
+#ifndef APSTUDIO_INVOKED
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 2,0,1,0
+ PRODUCTVERSION 2,0,1,0
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080404b0"
+        BEGIN
+            VALUE "CompanyName", "C-Kirov"
+            VALUE "FileDescription", "GUIC 2.0 - Õº–ŒªØ ±÷”"
+            VALUE "FileVersion", "2.0.1.0"
+            VALUE "InternalName", "GUIC_2"
+            VALUE "LegalCopyright", "Copyright (C) 2026 C-Kirov"
+            VALUE "OriginalFilename", "GUIC_2.exe"
+            VALUE "ProductName", "GUIC 2.0"
+            VALUE "ProductVersion", "2.0.1.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x804, 1200
+    END
+END
+#endif // APSTUDIO_INVOKED
+
 IDI_ICON1 ICON "GUIC_2.0.ico"
 
 IDD_MESSAGE_DIALOG DIALOGEX 0, 0, 300, 180

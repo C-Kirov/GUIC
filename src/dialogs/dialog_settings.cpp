@@ -1,4 +1,5 @@
 #include "dialog_settings.h"
+#include "../version.h"
 #include "../config/config.h"
 #include "../utils/logger.h"
 #include "../main.h"
@@ -244,7 +245,11 @@ static INT_PTR CALLBACK AboutDlgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
     if (msg == WM_INITDIALOG) {
         SetWindowTextA(hwnd, _S(STR_ABOUT_TITLE));
         SetDlgItemTextA(hwnd, IDC_STATIC_ABOUT_TITLE, _S(STR_ABOUT_DESC));
-        SetDlgItemTextA(hwnd, IDC_STATIC_ABOUT_VER, _S(STR_ABOUT_VERSION));
+        char verBuf[32];
+        sprintf(verBuf, _S(STR_ABOUT_VERSION),
+                GUIC_VERSION_MAJOR, GUIC_VERSION_MINOR,
+                GUIC_VERSION_BUILD, GUIC_VERSION_REV);
+        SetDlgItemTextA(hwnd, IDC_STATIC_ABOUT_VER, verBuf);
         SetDlgItemTextA(hwnd, IDC_STATIC_ABOUT_FEATURES, _S(STR_ABOUT_FEATURES));
         SetDlgItemTextA(hwnd, IDC_STATIC_ABOUT_NETWORK, _S(STR_ABOUT_NETWORK));
         SetDlgItemTextA(hwnd, IDC_STATIC_ABOUT_COMPILE, _S(STR_ABOUT_COMPILE));
