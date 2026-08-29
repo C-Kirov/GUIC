@@ -2,6 +2,7 @@
 #include "../config/config.h"
 #include "../utils/logger.h"
 #include "../main.h"
+#include "../i18n.h"
 #include <cstdio>
 
 // 一次性倒计时对话框过程
@@ -10,6 +11,10 @@ static INT_PTR CALLBACK CountdownOnceDlgProc(HWND hwnd, UINT msg, WPARAM wParam,
     switch (msg)
     {
         case WM_INITDIALOG:
+            SetWindowTextA(hwnd, _S(STR_SET_COUNTDOWN_ONCE));
+            SetDlgItemTextA(hwnd, IDC_STATIC_ONCE_INPUT, _S(STR_COUNTDOWN_ONCE_INPUT_LABEL));
+            SetDlgItemTextA(hwnd, IDOK, _S(STR_OK));
+            SetDlgItemTextA(hwnd, IDCANCEL, _S(STR_CANCEL));
             return TRUE;
         case WM_COMMAND:
         {
@@ -38,13 +43,13 @@ static INT_PTR CALLBACK CountdownOnceDlgProc(HWND hwnd, UINT msg, WPARAM wParam,
                         cfg.countdownTarget.onceTime.wMinute = (WORD)minute;
                         cfg.countdownTarget.onceTime.wSecond = (WORD)second;
                         WriteLog("设置一次性倒计时: " + timeStr);
-                        MessageBox(hwnd, "一次性倒计时设置成功！", "提示", MB_OK | MB_ICONINFORMATION);
+                        MessageBoxA(hwnd, _S(STR_COUNTDOWN_ONCE_SUCCESS), _S(STR_TIP), MB_OK | MB_ICONINFORMATION);
                         EndDialog(hwnd, IDOK);
                     } else {
-                        MessageBox(hwnd, "请输入有效的时间格式！\n格式：YYYY-MM-DD HH:MM:SS", "错误", MB_OK | MB_ICONERROR);
+                        MessageBoxA(hwnd, _S(STR_COUNTDOWN_ONCE_INVALID), _S(STR_ERROR), MB_OK | MB_ICONERROR);
                     }
                 } else {
-                    MessageBox(hwnd, "请输入完整的时间格式！\n格式：YYYY-MM-DD HH:MM:SS", "错误", MB_OK | MB_ICONERROR);
+                    MessageBoxA(hwnd, _S(STR_COUNTDOWN_ONCE_INVALID), _S(STR_ERROR), MB_OK | MB_ICONERROR);
                 }
             } else if (LOWORD(wParam) == IDCANCEL) {
                 EndDialog(hwnd, IDCANCEL);
@@ -62,6 +67,11 @@ static INT_PTR CALLBACK CountdownDailyDlgProc(HWND hwnd, UINT msg, WPARAM wParam
     {
         case WM_INITDIALOG:
         {
+            SetWindowTextA(hwnd, _S(STR_SET_COUNTDOWN_DAILY));
+            SetDlgItemTextA(hwnd, IDC_STATIC_DAILY_INPUT, _S(STR_COUNTDOWN_DAILY_INPUT_LABEL));
+            SetDlgItemTextA(hwnd, IDC_STATIC_DAILY_REMARK, _S(STR_COUNTDOWN_REMARK_LABEL));
+            SetDlgItemTextA(hwnd, IDOK, _S(STR_OK));
+            SetDlgItemTextA(hwnd, IDCANCEL, _S(STR_CANCEL));
             SetDlgItemTextA(hwnd, IDC_EDIT_DAILY_REMARK, AppConfig::GetInstance().dailyRemark.c_str());
             return TRUE;
         }
@@ -88,13 +98,13 @@ static INT_PTR CALLBACK CountdownDailyDlgProc(HWND hwnd, UINT msg, WPARAM wParam
                         cfg.dailyRemark = remarkBuf;
 
                         WriteLog("设置每日倒计时: " + timeStr + " 备注: " + cfg.dailyRemark);
-                        MessageBox(hwnd, "每日倒计时设置成功！", "提示", MB_OK | MB_ICONINFORMATION);
+                        MessageBoxA(hwnd, _S(STR_COUNTDOWN_DAILY_SUCCESS), _S(STR_TIP), MB_OK | MB_ICONINFORMATION);
                         EndDialog(hwnd, IDOK);
                     } else {
-                        MessageBox(hwnd, "请输入有效的时间格式！\n格式：HH:MM:SS", "错误", MB_OK | MB_ICONERROR);
+                        MessageBoxA(hwnd, _S(STR_COUNTDOWN_DAILY_INVALID), _S(STR_ERROR), MB_OK | MB_ICONERROR);
                     }
                 } else {
-                    MessageBox(hwnd, "请输入完整的时间格式！\n格式：HH:MM:SS", "错误", MB_OK | MB_ICONERROR);
+                    MessageBoxA(hwnd, _S(STR_COUNTDOWN_DAILY_INVALID), _S(STR_ERROR), MB_OK | MB_ICONERROR);
                 }
             } else if (LOWORD(wParam) == IDCANCEL) {
                 EndDialog(hwnd, IDCANCEL);

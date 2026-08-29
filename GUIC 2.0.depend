@@ -136,12 +136,12 @@
 	<string>
 	<cstring>
 
-1775904601 source:c:\users\czz18\desktop\guic2.0\src\utils\utils.cpp
+1782489178 source:c:\users\czz18\desktop\guic2.0\src\utils\utils.cpp
 	"utils.h"
 	<windows.h>
 	<fstream>
 
-1777973981 source:c:\users\czz18\desktop\guic2.0\src\config\config.cpp
+1782488896 source:c:\users\czz18\desktop\guic2.0\src\config\config.cpp
 	"config.h"
 	"../utils/logger.h"
 	"../utils/utils.h"
@@ -152,15 +152,16 @@
 	<cstring>
 	<cstdio>
 
-1777971825 c:\users\czz18\desktop\guic2.0\src\config\config.h
+1782489617 c:\users\czz18\desktop\guic2.0\src\config\config.h
 	<windows.h>
 	<string>
 	<vector>
 
-1775904637 c:\users\czz18\desktop\guic2.0\src\utils\network.h
+1782487888 c:\users\czz18\desktop\guic2.0\src\utils\network.h
 	<windows.h>
+	<cstdint>
 
-1777972841 c:\users\czz18\desktop\guic2.0\src\main.h
+1782489674 c:\users\czz18\desktop\guic2.0\src\main.h
 	<windows.h>
 	"resource.h"
 
@@ -200,11 +201,12 @@
 	"utils/logger.h"
 	"resource.h"
 
-1778393797 source:c:\users\czz18\desktop\guic2.0\src\windowproc.cpp
+1782489065 source:c:\users\czz18\desktop\guic2.0\src\windowproc.cpp
 	"main.h"
 	"config/config.h"
 	"utils/logger.h"
 	"utils/renderer.h"
+	"utils/gdi_utils.h"
 	"dialogs/dialog_message.h"
 	"dialogs/dialog_countdown.h"
 	"dialogs/dialog_settings.h"
@@ -214,10 +216,11 @@
 1775904797 c:\users\czz18\desktop\guic2.0\src\dialogs\dialog_special.h
 	<windows.h>
 
-1778398727 source:c:\users\czz18\desktop\guic2.0\src\dialogs\dialog_special.cpp
+1782489692 source:c:\users\czz18\desktop\guic2.0\src\dialogs\dialog_special.cpp
 	"dialog_special.h"
 	"../config/config.h"
 	"../utils/logger.h"
+	"../utils/gdi_utils.h"
 	"../main.h"
 	<cstdio>
 	<vector>
@@ -276,15 +279,17 @@
 	<vector>
 	"tz.h"
 
-1778399146 source:c:\users\czz18\desktop\guic2.0\src\utils\network.cpp
+1782488208 source:c:\users\czz18\desktop\guic2.0\src\utils\network.cpp
 	<winsock2.h>
 	<ws2tcpip.h>
 	<cstdio>
 	<cstring>
 	<cstdint>
+	<cstdlib>
 	<vector>
 	<string>
 	<algorithm>
+	<cmath>
 	"network.h"
 	"logger.h"
 
@@ -344,6 +349,15 @@
 1777970564 c:\users\czz18\desktop\guic2.0\src\utils\renderer.h
 	<windows.h>
 
-1777970542 c:\users\czz18\desktop\guic2.0\src\utils\gdi_utils.h
+1782489014 c:\users\czz18\desktop\guic2.0\src\utils\gdi_utils.h
+	<windows.h>
+
+1782489112 source:c:\users\czz18\desktop\guic2.0\src\dialogs\dialog_base.cpp
+	"dialog_base.h"
+	<cstring>
+	<string>
+	<set>
+
+1777971975 c:\users\czz18\desktop\guic2.0\src\dialogs\dialog_base.h
 	<windows.h>
 

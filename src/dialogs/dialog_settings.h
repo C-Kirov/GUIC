@@ -6,5 +6,9 @@
 void ShowWindowSettingsDialog(HWND parent);
 void ShowFontSettingsDialog(HWND parent);
 void ShowColorSettingsDialog(HWND parent);
+void ShowWeatherCityDialog(HWND parent);
+void ShowNtpServerDialog(HWND parent);
+void ShowAboutDialog(HWND parent);
+void ShowServerSettingsDialog(HWND parent);
 
-#endif // DIALOG_SETTINGS_H
+#endif

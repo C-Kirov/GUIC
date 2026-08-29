@@ -1,0 +1,2 @@
+# CMake 构建缓存（构建产物仍按仓库约定保留 build/）
+cmake-build/

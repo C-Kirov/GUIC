@@ -8,7 +8,6 @@
 #include <cstring>
 #include <cstdio>
 
-// 单例实现
 AppConfig& AppConfig::GetInstance() {
     static AppConfig instance;
     return instance;
@@ -32,51 +31,59 @@ AppConfig::AppConfig()
     , useNetworkTime(false)
     , lastNetworkTime({0})
     , localTimeOffset(0)
+    , ntpCustomServer("")
+    , weatherCity("Beijing")
+    , showWeather(false)
+    , showLunar(true)
+    , language(AppLanguage::ZH_CN)
+    , borderless(false)
+    , ntpServerEnabled(false)
+    , ntpServerPort(123)
+    , httpServerEnabled(false)
+    , httpServerPort(8080)
+    , m_ntpFailCount(0)
 {
     ZeroMemory(configFile, sizeof(configFile));
     ZeroMemory(specialDaysFile, sizeof(specialDaysFile));
+    InitializeCriticalSection(&m_cs);
+}
+
+AppConfig::~AppConfig()
+{
+    DeleteCriticalSection(&m_cs);
 }
 
 void AppConfig::GetCurrentDateTime(SYSTEMTIME& st)
 {
-    if (useNetworkTime)
-    {
+    ScopedLock lock(*this);
+    if (useNetworkTime) {
         SYSTEMTIME localNow;
         GetLocalTime(&localNow);
-
         FILETIME ftLocalNow, ftLastNetwork;
         SystemTimeToFileTime(&localNow, &ftLocalNow);
         SystemTimeToFileTime(&lastNetworkTime, &ftLastNetwork);
-
         ULARGE_INTEGER ulLocal, ulNetwork;
         ulLocal.LowPart = ftLocalNow.dwLowDateTime;
         ulLocal.HighPart = ftLocalNow.dwHighDateTime;
         ulNetwork.LowPart = ftLastNetwork.dwLowDateTime;
         ulNetwork.HighPart = ftLastNetwork.dwHighDateTime;
-
         ULARGE_INTEGER ulCurrent;
         ulCurrent.QuadPart = ulLocal.QuadPart + localTimeOffset;
-
         FILETIME ftCurrent;
         ftCurrent.dwLowDateTime = ulCurrent.LowPart;
         ftCurrent.dwHighDateTime = ulCurrent.HighPart;
-
         SYSTEMTIME utcTime;
         FileTimeToSystemTime(&ftCurrent, &utcTime);
-
         if (!SystemTimeToTzSpecificLocalTime(NULL, &utcTime, &st)) {
             st = utcTime;
-            WriteLog("UTC 到本地时间转换失败，使用 UTC 时间");
+            WriteLog("UTC 转本地时间转换失败，使用 UTC 时间");
         }
-
         if (st.wYear < 2020 || st.wYear > 2100) {
-            WriteLog("计算出的网络时间异常，回退本地时间");
+            WriteLog("网络时间计算异常，退回本地时间");
             GetLocalTime(&st);
             useNetworkTime = false;
         }
-    }
-    else
-    {
+    } else {
         GetLocalTime(&st);
     }
 }
@@ -84,7 +91,9 @@ void AppConfig::GetCurrentDateTime(SYSTEMTIME& st)
 void AppConfig::SyncNetworkTime()
 {
     SYSTEMTIME networkTime;
-    if (GetNetworkTime(networkTime))
+
+    if (GetNetworkTime(networkTime, nullptr, nullptr,
+                       ntpCustomServer.empty() ? nullptr : ntpCustomServer.c_str()))
     {
         SYSTEMTIME localNow;
         GetLocalTime(&localNow);
@@ -94,34 +103,50 @@ void AppConfig::SyncNetworkTime()
         SystemTimeToFileTime(&networkTime, &ftNetwork);
 
         ULARGE_INTEGER ulLocal, ulNetwork;
-        ulLocal.LowPart = ftLocal.dwLowDateTime;
+        ulLocal.LowPart  = ftLocal.dwLowDateTime;
         ulLocal.HighPart = ftLocal.dwHighDateTime;
-        ulNetwork.LowPart = ftNetwork.dwLowDateTime;
+        ulNetwork.LowPart  = ftNetwork.dwLowDateTime;
         ulNetwork.HighPart = ftNetwork.dwHighDateTime;
 
         LONGLONG newOffset = (LONGLONG)(ulNetwork.QuadPart - ulLocal.QuadPart);
 
+        ScopedLock lock(*this);
+
         if (useNetworkTime) {
-            // 指数平滑偏移（alpha = 0.3）
-            localTimeOffset = (LONGLONG)(localTimeOffset * 0.7 + newOffset * 0.3);
+            localTimeOffset = (LONGLONG)(
+                (double)localTimeOffset * 0.7 + (double)newOffset * 0.3
+            );
         } else {
             localTimeOffset = newOffset;
         }
 
         lastNetworkTime = networkTime;
-        useNetworkTime = true;
-        WriteLog("网络时间同步成功，偏移: " + std::to_string(localTimeOffset) + " 100ns");
+        useNetworkTime  = true;
+        m_ntpFailCount  = 0;
+
+        char logBuf[256];
+        sprintf(logBuf,
+                "网络时间同步成功 - 本次偏移: %lld (100ns) ≈ %.3f ms, "
+                "EWMA 偏移: %lld ≈ %.3f ms",
+                newOffset,
+                newOffset / 10000.0,
+                localTimeOffset,
+                localTimeOffset / 10000.0);
+        WriteLog(logBuf);
     }
     else
     {
-        static int failCount = 0;
-        failCount++;
-        if (failCount >= 3) {
+        ScopedLock lock(*this);
+        m_ntpFailCount++;
+
+        if (m_ntpFailCount >= 3) {
             useNetworkTime = false;
-            WriteLog("连续 3 次网络时间同步失败，回退到本地时间");
-            failCount = 0;
+            WriteLog("连续 3 次网络时间同步失败，退回本地时间");
+            m_ntpFailCount = 0;
         } else {
-            WriteLog("网络时间同步失败，仍保持当前模式");
+            char buf[128];
+            sprintf(buf, "网络时间同步失败 (%d/3)，保持当前模式", m_ntpFailCount);
+            WriteLog(buf);
         }
     }
 }
@@ -134,28 +159,33 @@ void AppConfig::InitPaths()
     strcat(configFile, "config.ini");
     strcat(specialDaysFile, "special_days.txt");
     WriteLog("配置文件路径: " + std::string(configFile));
-    WriteLog("特殊日子文件路径: " + std::string(specialDaysFile));
+    WriteLog("特殊日期文件路径: " + std::string(specialDaysFile));
 }
 
 void AppConfig::SaveConfig()
 {
     if (strlen(configFile) == 0) InitPaths();
-    WriteLog("保存配置到: " + std::string(configFile));
+    WriteLog("保存设置到: " + std::string(configFile));
     char buf[32];
+
     sprintf(buf, "%d", windowWidth);
     WritePrivateProfileString("Window", "Width", buf, configFile);
     sprintf(buf, "%d", windowHeight);
     WritePrivateProfileString("Window", "Height", buf, configFile);
     WritePrivateProfileString("Window", "Resizable", resizable ? "1" : "0", configFile);
+    WritePrivateProfileString("Window", "Borderless", borderless ? "1" : "0", configFile);
+
     sprintf(buf, "%d", fontSize);
     WritePrivateProfileString("Font", "Size", buf, configFile);
     WritePrivateProfileString("Font", "Name", fontName.c_str(), configFile);
+
     sprintf(buf, "%d", GetRValue(fontColor));
     WritePrivateProfileString("Color", "R", buf, configFile);
     sprintf(buf, "%d", GetGValue(fontColor));
     WritePrivateProfileString("Color", "G", buf, configFile);
     sprintf(buf, "%d", GetBValue(fontColor));
     WritePrivateProfileString("Color", "B", buf, configFile);
+
     char timeStr[32];
     sprintf(timeStr, "%02d:%02d:%02d",
             countdownTarget.dailyTime.wHour,
@@ -165,12 +195,31 @@ void AppConfig::SaveConfig()
     WritePrivateProfileString("Countdown", "Remark", dailyRemark.c_str(), configFile);
     sprintf(buf, "%d", countdownMode);
     WritePrivateProfileString("Countdown", "Mode", buf, configFile);
+
     WritePrivateProfileString("Message", "Content", message.c_str(), configFile);
+
     WritePrivateProfileString("Display", "ShowClock", showClock ? "1" : "0", configFile);
     WritePrivateProfileString("Display", "ShowCountdown", showCountdown ? "1" : "0", configFile);
     WritePrivateProfileString("Display", "ShowMessage", showMessage ? "1" : "0", configFile);
     WritePrivateProfileString("Display", "AutoLayout", autoLayout ? "1" : "0", configFile);
-    WriteLog("配置已保存到config.ini");
+    WritePrivateProfileString("Display", "ShowWeather", showWeather ? "1" : "0", configFile);
+    WritePrivateProfileString("Display", "ShowLunar", showLunar ? "1" : "0", configFile);
+
+    WritePrivateProfileString("Network", "CustomNtpServer", ntpCustomServer.c_str(), configFile);
+    WritePrivateProfileString("Weather", "City", weatherCity.c_str(), configFile);
+
+    sprintf(buf, "%d", (int)language);
+    WritePrivateProfileString("App", "Language", buf, configFile);
+
+    // ====== 【修复】保存服务器设置 ======
+    WritePrivateProfileString("Server", "NtpEnabled", ntpServerEnabled ? "1" : "0", configFile);
+    sprintf(buf, "%d", ntpServerPort);
+    WritePrivateProfileString("Server", "NtpPort", buf, configFile);
+    WritePrivateProfileString("Server", "HttpEnabled", httpServerEnabled ? "1" : "0", configFile);
+    sprintf(buf, "%d", httpServerPort);
+    WritePrivateProfileString("Server", "HttpPort", buf, configFile);
+
+    WriteLog("设置已保存到config.ini");
 }
 
 void AppConfig::LoadConfig()
@@ -178,11 +227,12 @@ void AppConfig::LoadConfig()
     if (strlen(configFile) == 0) InitPaths();
     WriteLog("尝试从配置文件加载设置: " + std::string(configFile));
     char buffer[256];
+
     DWORD fileAttributes = GetFileAttributesA(configFile);
     bool configFileExists = (fileAttributes != INVALID_FILE_ATTRIBUTES &&
                             !(fileAttributes & FILE_ATTRIBUTE_DIRECTORY));
     if (!configFileExists) {
-        WriteLog("配置文件不存在，创建默认配置");
+        WriteLog("配置文件不存在，使用默认设置");
         countdownTarget.dailyTime.wHour = 20;
         countdownTarget.dailyTime.wMinute = 10;
         countdownTarget.dailyTime.wSecond = 0;
@@ -190,17 +240,23 @@ void AppConfig::LoadConfig()
         SaveConfig();
         return;
     }
-    WriteLog("配置文件存在，开始加载配置");
+
+    WriteLog("配置文件存在，开始加载设置");
+
     GetPrivateProfileString("Window", "Width", "500", buffer, sizeof(buffer), configFile);
     windowWidth = atoi(buffer);
     GetPrivateProfileString("Window", "Height", "400", buffer, sizeof(buffer), configFile);
     windowHeight = atoi(buffer);
     GetPrivateProfileString("Window", "Resizable", "1", buffer, sizeof(buffer), configFile);
     resizable = (atoi(buffer) == 1);
+    GetPrivateProfileString("Window", "Borderless", "0", buffer, sizeof(buffer), configFile);
+    borderless = (atoi(buffer) == 1);
+
     GetPrivateProfileString("Font", "Size", "20", buffer, sizeof(buffer), configFile);
     fontSize = atoi(buffer);
     GetPrivateProfileString("Font", "Name", "Arial", buffer, sizeof(buffer), configFile);
     fontName = buffer;
+
     GetPrivateProfileString("Color", "R", "0", buffer, sizeof(buffer), configFile);
     int r = atoi(buffer);
     GetPrivateProfileString("Color", "G", "0", buffer, sizeof(buffer), configFile);
@@ -208,6 +264,7 @@ void AppConfig::LoadConfig()
     GetPrivateProfileString("Color", "B", "0", buffer, sizeof(buffer), configFile);
     int b = atoi(buffer);
     fontColor = RGB(r, g, b);
+
     GetPrivateProfileString("Countdown", "DailyTime", "20:10:00", buffer, sizeof(buffer), configFile);
     int hour, minute, second;
     if (sscanf(buffer, "%d:%d:%d", &hour, &minute, &second) == 3) {
@@ -223,8 +280,10 @@ void AppConfig::LoadConfig()
     dailyRemark = buffer;
     GetPrivateProfileString("Countdown", "Mode", "1", buffer, sizeof(buffer), configFile);
     countdownMode = (CountdownMode)atoi(buffer);
+
     GetPrivateProfileString("Message", "Content", "欢迎使用图形化时钟！", buffer, sizeof(buffer), configFile);
     message = buffer;
+
     GetPrivateProfileString("Display", "ShowClock", "1", buffer, sizeof(buffer), configFile);
     showClock = (atoi(buffer) == 1);
     GetPrivateProfileString("Display", "ShowCountdown", "1", buffer, sizeof(buffer), configFile);
@@ -233,10 +292,38 @@ void AppConfig::LoadConfig()
     showMessage = (atoi(buffer) == 1);
     GetPrivateProfileString("Display", "AutoLayout", "1", buffer, sizeof(buffer), configFile);
     autoLayout = (atoi(buffer) == 1);
-    WriteLog("配置加载完成");
+    GetPrivateProfileString("Display", "ShowWeather", "0", buffer, sizeof(buffer), configFile);
+    showWeather = (atoi(buffer) == 1);
+    GetPrivateProfileString("Display", "ShowLunar", "1", buffer, sizeof(buffer), configFile);
+    showLunar = (atoi(buffer) == 1);
+
+    GetPrivateProfileString("Network", "CustomNtpServer", "", buffer, sizeof(buffer), configFile);
+    ntpCustomServer = buffer;
+
+    GetPrivateProfileString("Weather", "City", "Beijing", buffer, sizeof(buffer), configFile);
+    weatherCity = buffer;
+
+    GetPrivateProfileString("App", "Language", "0", buffer, sizeof(buffer), configFile);
+    language = (AppLanguage)atoi(buffer);
+
+    // ====== 【修复】加载服务器设置 ======
+    GetPrivateProfileString("Server", "NtpEnabled", "0", buffer, sizeof(buffer), configFile);
+    ntpServerEnabled = (atoi(buffer) == 1);
+    GetPrivateProfileString("Server", "NtpPort", "123", buffer, sizeof(buffer), configFile);
+    ntpServerPort = atoi(buffer);
+    if (ntpServerPort < 1 || ntpServerPort > 65535) ntpServerPort = 123;
+
+    GetPrivateProfileString("Server", "HttpEnabled", "0", buffer, sizeof(buffer), configFile);
+    httpServerEnabled = (atoi(buffer) == 1);
+    GetPrivateProfileString("Server", "HttpPort", "8080", buffer, sizeof(buffer), configFile);
+    httpServerPort = atoi(buffer);
+    if (httpServerPort < 1 || httpServerPort > 65535) httpServerPort = 8080;
+
+    WriteLog("设置加载完成");
 }
 
-std::string AppConfig::GetSpecialDay(int year, int month, int day, int hour, int minute, int second)
+std::string AppConfig::GetSpecialDay(int year, int month, int day,
+                                     int hour, int minute, int second)
 {
     std::string result;
     for (const auto& sd : specialDays) {
@@ -258,7 +345,7 @@ std::string AppConfig::GetSpecialDay(int year, int month, int day, int hour, int
 void AppConfig::InitSpecialDays()
 {
     specialDays.clear();
-    WriteLog("初始化特殊日子数据");
+    WriteLog("初始化特殊日期列表");
     LoadSpecialDaysFromFile();
 }
 
@@ -302,7 +389,7 @@ void AppConfig::LoadSpecialDaysFromFile()
         customCount++;
     }
     file.close();
-    WriteLog("从 special_days.txt 加载了 " + std::to_string(customCount) + " 条特殊日子");
+    WriteLog("从 special_days.txt 加载了 " + std::to_string(customCount) + " 个特殊日期");
 }
 
 void AppConfig::SaveSpecialDaysToFile()
@@ -310,8 +397,8 @@ void AppConfig::SaveSpecialDaysToFile()
     if (strlen(specialDaysFile) == 0) InitPaths();
     std::ofstream file(specialDaysFile);
     if (file.is_open()) {
-        file << "# 特殊日子配置文件" << std::endl;
-        file << "# 格式：名称|月份|日期|小时|分钟|是否每年重复(1/0)|年份(如果是0则忽略)|是否节气(1/0)" << std::endl;
+        file << "# 特殊日期配置文件" << std::endl;
+        file << "# 格式：名称|月份|日期|小时|分钟|是否每年重复(1/0)|年份(不重复时有效)|是否节气(1/0)" << std::endl;
         file << "# 示例：" << std::endl;
         for (const auto& sd : specialDays) {
             file << sd.name << "|" << sd.month << "|" << sd.day << "|"
@@ -320,7 +407,7 @@ void AppConfig::SaveSpecialDaysToFile()
                  << (sd.isSolarTerm ? "1" : "0") << std::endl;
         }
         file.close();
-        WriteLog("特殊日子已保存到 special_days.txt");
+        WriteLog("特殊日期已保存到 special_days.txt");
     }
 }
 
@@ -329,16 +416,14 @@ void AppConfig::CreateDefaultSpecialDaysFile()
     if (strlen(specialDaysFile) == 0) InitPaths();
     std::ofstream file(specialDaysFile);
     if (file.is_open()) {
-        file << "# 特殊日子配置文件" << std::endl;
-        file << "# 格式：名称|月份|日期|小时|分钟|是否每年重复(1/0)|年份(如果是0则忽略)|是否节气(1/0)" << std::endl;
-        file << "# 示例：" << std::endl;
-        // 一般节日
+        file << "# 特殊日期配置文件" << std::endl;
+        file << "# 格式：名称|月份|日期|小时|分钟|每年重复|年份|是否节气" << std::endl;
+        file << "# 一般节日" << std::endl;
         file << "元旦|1|1|0|0|1|0|0" << std::endl;
         file << "春节|2|1|0|0|1|0|0" << std::endl;
         file << "元宵节|2|15|0|0|1|0|0" << std::endl;
         file << "情人节|2|14|0|0|1|0|0" << std::endl;
         file << "妇女节|3|8|0|0|1|0|0" << std::endl;
-        file << "植树节|3|12|0|0|1|0|0" << std::endl;
         file << "清明节|4|4|0|0|1|0|0" << std::endl;
         file << "劳动节|5|1|0|0|1|0|0" << std::endl;
         file << "青年节|5|4|0|0|1|0|0" << std::endl;
@@ -349,20 +434,7 @@ void AppConfig::CreateDefaultSpecialDaysFile()
         file << "国庆节|10|1|0|0|1|0|0" << std::endl;
         file << "平安夜|12|24|0|0|1|0|0" << std::endl;
         file << "圣诞节|12|25|0|0|1|0|0" << std::endl;
-        // 国际节日
-        file << "世界地球日|4|22|0|0|1|0|0" << std::endl;
-        file << "世界环境日|6|5|0|0|1|0|0" << std::endl;
-        file << "世界人口日|7|11|0|0|1|0|0" << std::endl;
-        file << "世界粮食日|10|16|0|0|1|0|0" << std::endl;
-        file << "世界艾滋病日|12|1|0|0|1|0|0" << std::endl;
-        // 纪念日
-        file << "                          |6|4|0|0|1|0|0" << std::endl;
-        file << "七七事变纪念日|7|7|0|0|1|0|0" << std::endl;
-        file << "九一八事变纪念日|9|18|0|0|1|0|0" << std::endl;
-        file << "十月革命胜利纪念日|11|7|0|0|1|0|0" << std::endl;
         file << "南京大屠杀纪念日|12|13|0|0|1|0|0" << std::endl;
-        file << "苏联成立纪念日|12|30|0|0|1|0|0" << std::endl;
-        // 节气
         file << "立春|2|4|12|30|1|0|1" << std::endl;
         file << "雨水|2|19|1|45|1|0|1" << std::endl;
         file << "惊蛰|3|5|8|20|1|0|1" << std::endl;

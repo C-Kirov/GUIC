@@ -28,6 +28,34 @@ void WriteLog(const std::string& message)
     }
 }
 
+//   新增：记录 Win32 错误
+void LogWin32Error(const char* context)
+{
+    DWORD err = GetLastError();
+    char buf[512];
+    char* msgBuf = NULL;
+
+    FormatMessageA(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL, err,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPSTR)&msgBuf, 0, NULL);
+
+    if (msgBuf) {
+        // 去除末尾换行
+        size_t len = strlen(msgBuf);
+        while (len > 0 && (msgBuf[len-1] == '\n' || msgBuf[len-1] == '\r'))
+            msgBuf[--len] = '\0';
+
+        sprintf(buf, "%s 失败 (代码 %lu): %s", context, err, msgBuf);
+        LocalFree(msgBuf);
+    } else {
+        sprintf(buf, "%s 失败 (代码 %lu)", context, err);
+    }
+
+    WriteLog(buf);
+}
+
 std::string GetSystemInfo()
 {
     std::stringstream ss;

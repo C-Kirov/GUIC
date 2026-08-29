@@ -31,6 +31,7 @@
 			<Add option="-loleaut32" />
 		</Linker>
 		<Unit filename="doc/架构.txt" />
+		<Unit filename="src/GUIC_2.0.manifest" />
 		<Unit filename="src/config/config.cpp" />
 		<Unit filename="src/config/config.h" />
 		<Unit filename="src/config/special_days.h" />
@@ -42,22 +43,31 @@
 		<Unit filename="src/dialogs/dialog_settings.h" />
 		<Unit filename="src/dialogs/dialog_special.cpp" />
 		<Unit filename="src/dialogs/dialog_special.h" />
+		<Unit filename="src/i18n.cpp" />
+		<Unit filename="src/i18n.h" />
 		<Unit filename="src/main.cpp" />
 		<Unit filename="src/main.h" />
 		<Unit filename="src/resource.h" />
 		<Unit filename="src/resource.rc">
 			<Option compilerVar="WINDRES" />
 		</Unit>
-		<Unit filename="src/special_days.h" />
 		<Unit filename="src/utils/gdi_utils.h" />
+		<Unit filename="src/utils/http_server.cpp" />
+		<Unit filename="src/utils/http_server.h" />
 		<Unit filename="src/utils/logger.cpp" />
 		<Unit filename="src/utils/logger.h" />
+		<Unit filename="src/utils/lunar.cpp" />
+		<Unit filename="src/utils/lunar.h" />
 		<Unit filename="src/utils/network.cpp" />
 		<Unit filename="src/utils/network.h" />
+		<Unit filename="src/utils/ntp_server.cpp" />
+		<Unit filename="src/utils/ntp_server.h" />
 		<Unit filename="src/utils/renderer.cpp" />
 		<Unit filename="src/utils/renderer.h" />
 		<Unit filename="src/utils/utils.cpp" />
 		<Unit filename="src/utils/utils.h" />
+		<Unit filename="src/utils/weather.cpp" />
+		<Unit filename="src/utils/weather.h" />
 		<Unit filename="src/windowproc.cpp" />
 		<Extensions>
 			<AutoVersioning>

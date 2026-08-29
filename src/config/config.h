@@ -10,7 +10,7 @@ enum CountdownMode {
     COUNTDOWN_DAILY
 };
 
-union CountdownTarget {
+struct CountdownTarget {
     SYSTEMTIME onceTime;
     SYSTEMTIME dailyTime;
 };
@@ -26,16 +26,30 @@ struct SpecialDay {
     bool isSolarTerm;
 };
 
-// 单例配置管理类（线程不安全，适用于单线程）
+enum class AppLanguage {
+    ZH_CN,
+    EN_US
+};
+
 class AppConfig {
 public:
     static AppConfig& GetInstance();
 
-    // 禁止拷贝
     AppConfig(const AppConfig&) = delete;
     AppConfig& operator=(const AppConfig&) = delete;
 
-    // 数据成员（原全局变量）
+    class ScopedLock {
+        AppConfig& m_cfg;
+    public:
+        explicit ScopedLock(AppConfig& cfg) : m_cfg(cfg) {
+            EnterCriticalSection(&m_cfg.m_cs);
+        }
+        ~ScopedLock() {
+            LeaveCriticalSection(&m_cfg.m_cs);
+        }
+    };
+
+    // 显示配置
     std::string message;
     bool showMessage;
     bool showClock;
@@ -48,23 +62,39 @@ public:
     int  windowWidth;
     int  windowHeight;
     std::string dailyRemark;
-    CountdownMode countdownMode;
+    CountdownMode   countdownMode;
     CountdownTarget countdownTarget;
     std::vector<SpecialDay> specialDays;
 
-    bool useNetworkTime;
+    // 网络时间
+    bool      useNetworkTime;
     SYSTEMTIME lastNetworkTime;
-    LONGLONG localTimeOffset;   // 100ns 单位
+    LONGLONG   localTimeOffset;
+
+    // 网络与扩展
+    std::string  ntpCustomServer;
+    std::string  weatherCity;
+    bool         showWeather;
+    bool         showLunar;
+    AppLanguage  language;
+    bool         borderless;
+
+    // 内建服务器
+    bool         ntpServerEnabled;
+    int          ntpServerPort;
+    bool         httpServerEnabled;
+    int          httpServerPort;
 
     // 文件路径
     char configFile[MAX_PATH];
     char specialDaysFile[MAX_PATH];
 
-    // 方法（原全局函数）
+    // 方法
     void InitPaths();
     void SaveConfig();
     void LoadConfig();
-    std::string GetSpecialDay(int year, int month, int day, int hour, int minute, int second);
+    std::string GetSpecialDay(int year, int month, int day,
+                              int hour, int minute, int second);
     void InitSpecialDays();
     void LoadSpecialDaysFromFile();
     void SaveSpecialDaysToFile();
@@ -74,13 +104,14 @@ public:
 
 private:
     AppConfig();
-    ~AppConfig() = default;
+    ~AppConfig();
+
+    CRITICAL_SECTION m_cs;
+    int              m_ntpFailCount;
 };
 
-// 便捷访问宏
 #define g_config AppConfig::GetInstance()
 
-// 变量映射宏（保留兼容旧代码）
 #define g_message           g_config.message
 #define g_showMessage       g_config.showMessage
 #define g_showClock         g_config.showClock
@@ -101,7 +132,5 @@ private:
 #define g_localTimeOffset   g_config.localTimeOffset
 #define CONFIG_FILE         g_config.configFile
 #define SPECIAL_DAYS_FILE   g_config.specialDaysFile
-
-// 注意：不再提供函数映射宏，避免与成员函数定义冲突
 
 #endif // CONFIG_H

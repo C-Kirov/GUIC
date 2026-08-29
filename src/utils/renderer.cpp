@@ -1,14 +1,21 @@
 #include "renderer.h"
-#include "../config/config.h"       // AppConfig 单例
-#include "utils.h"                 // ReadWorkFile
-#include "gdi_utils.h"             // RAII GDI 包装
+#include "../config/config.h"
+#include "utils.h"
+#include "gdi_utils.h"
+#include "lunar.h"
+#include "weather.h"
+#include "../main.h"
+#include "../i18n.h"
 #include <cstdio>
+
+// 外部引用（来自 windowproc.cpp 的静态变量）
+extern WeatherInfo g_weather;
+extern bool        g_weatherLoading;
 
 void Renderer::Draw(HWND hwnd, HDC hdc)
 {
     AppConfig& cfg = AppConfig::GetInstance();
 
-    // 创建字体（使用 RAII 自动释放）
     ScopedFont hFont(CreateFont(
         cfg.fontSize, 0, 0, 0,
         FW_NORMAL, FALSE, FALSE, FALSE,
@@ -17,7 +24,6 @@ void Renderer::Draw(HWND hwnd, HDC hdc)
         DEFAULT_PITCH | FF_SWISS, cfg.fontName.c_str()
     ));
 
-    // 选择字体并保存旧字体（自动恢复）
     GDIObjectSelector fontSel(hdc, hFont);
     SetTextColor(hdc, cfg.fontColor);
     SetBkMode(hdc, TRANSPARENT);
@@ -27,14 +33,12 @@ void Renderer::Draw(HWND hwnd, HDC hdc)
     int clientWidth  = clientRect.right - clientRect.left;
     int clientHeight = clientRect.bottom - clientRect.top;
 
-    // 白色背景
     ScopedBrush whiteBrush(CreateSolidBrush(RGB(255, 255, 255)));
     FillRect(hdc, &clientRect, whiteBrush);
 
     int y = 10;
     const int leftMargin = 10;
-    const int rightMargin = 10;
-    int maxWidth = clientWidth - leftMargin - rightMargin;
+    int maxWidth = clientWidth - leftMargin - 10;
 
     // 1. 显示时钟
     if (cfg.showClock)
@@ -44,13 +48,27 @@ void Renderer::Draw(HWND hwnd, HDC hdc)
         char timeStr[256];
         sprintf(timeStr, "%04d-%02d-%02d %02d:%02d:%02d",
                 st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
+
         std::string specialDay = cfg.GetSpecialDay(st.wYear, st.wMonth, st.wDay,
                                                    st.wHour, st.wMinute, st.wSecond);
         std::string displayStr(timeStr);
         if (!specialDay.empty()) {
             displayStr += " [" + specialDay + "]";
         }
-        TextOutA(hdc, leftMargin, y, displayStr.c_str(), displayStr.length());
+
+        // 农历显示
+        if (cfg.showLunar) {
+            SolarDate sd = { (int)st.wYear, (int)st.wMonth, (int)st.wDay };
+            LunarDate ld = SolarToLunar(sd);
+            std::string lunarStr = LunarToString(ld);
+            std::string tdgz = GetTianGanDiZhi(ld.year);
+            std::string sx = GetShengXiao(ld.year);
+            char lunarBuf[128];
+            sprintf(lunarBuf, "  [%s%s年 %s]", tdgz.c_str(), sx.c_str(), lunarStr.c_str());
+            displayStr += lunarBuf;
+        }
+
+        TextOutA(hdc, leftMargin, y, displayStr.c_str(), (int)displayStr.length());
         y += cfg.autoLayout ? cfg.fontSize + 10 : 30;
     }
 
@@ -58,7 +76,9 @@ void Renderer::Draw(HWND hwnd, HDC hdc)
     if (cfg.showCountdown)
     {
         SYSTEMTIME empty = {};
-        if (memcmp(&cfg.countdownTarget.onceTime, &empty, sizeof(SYSTEMTIME)) != 0)
+        if (memcmp(&cfg.countdownTarget.onceTime, &empty, sizeof(SYSTEMTIME)) != 0 ||
+            cfg.countdownTarget.dailyTime.wHour != 0 ||
+            cfg.countdownTarget.dailyTime.wMinute != 0)
         {
             SYSTEMTIME now;
             cfg.GetCurrentDateTime(now);
@@ -82,16 +102,18 @@ void Renderer::Draw(HWND hwnd, HDC hdc)
 
                 if (diff > 0) {
                     char buf[256];
-                    sprintf(buf, "倒计时：%lld天%lld小时%lld分钟%lld秒",
-                            diff / 86400, (diff % 86400) / 3600, (diff % 3600) / 60, diff % 60);
-                    TextOutA(hdc, leftMargin, y, buf, strlen(buf));
+                    sprintf(buf, _S(STR_COUNTDOWN_FMT),
+                            diff / 86400, (diff % 86400) / 3600,
+                            (diff % 3600) / 60, diff % 60);
+                    TextOutA(hdc, leftMargin, y, buf, (int)strlen(buf));
                 } else {
-                    TextOutA(hdc, leftMargin, y, "倒计时已结束!", 13);
+                    TextOutA(hdc, leftMargin, y, _S(STR_COUNTDOWN_ENDED),
+                             (int)strlen(_S(STR_COUNTDOWN_ENDED)));
                 }
                 y += cfg.fontSize + 10;
                 if (!cfg.dailyRemark.empty()) {
-                    std::string remark = "备注: " + cfg.dailyRemark;
-                    TextOutA(hdc, leftMargin, y, remark.c_str(), remark.length());
+                    std::string remark = cfg.dailyRemark;
+                    TextOutA(hdc, leftMargin, y, remark.c_str(), (int)remark.length());
                     y += cfg.fontSize + 10;
                 }
             }
@@ -109,38 +131,63 @@ void Renderer::Draw(HWND hwnd, HDC hdc)
 
                 if (diff > 0) {
                     char buf[256];
-                    sprintf(buf, "倒计时：%lld天%lld小时%lld分钟%lld秒",
-                            diff / 86400, (diff % 86400) / 3600, (diff % 3600) / 60, diff % 60);
-                    TextOutA(hdc, leftMargin, y, buf, strlen(buf));
+                    sprintf(buf, _S(STR_COUNTDOWN_FMT),
+                            diff / 86400, (diff % 86400) / 3600,
+                            (diff % 3600) / 60, diff % 60);
+                    TextOutA(hdc, leftMargin, y, buf, (int)strlen(buf));
                 } else {
-                    TextOutA(hdc, leftMargin, y, "倒计时已结束!", 13);
+                    TextOutA(hdc, leftMargin, y, _S(STR_COUNTDOWN_ENDED),
+                             (int)strlen(_S(STR_COUNTDOWN_ENDED)));
                 }
                 y += cfg.fontSize + 10;
             }
         }
         else
         {
-            TextOutA(hdc, leftMargin, y, "倒计时功能未启用", 17);
+            TextOutA(hdc, leftMargin, y, _S(STR_COUNTDOWN_NOT_SET),
+                     (int)strlen(_S(STR_COUNTDOWN_NOT_SET)));
             y += cfg.fontSize + 10;
         }
     }
 
-    // 3. 提示信息（自动换行）
+    // 3. 显示消息
     if (cfg.showMessage && !cfg.message.empty())
     {
         RECT msgRect = {leftMargin, y, leftMargin + maxWidth, clientHeight - 10};
-        int msgHeight = DrawTextA(hdc, cfg.message.c_str(), -1, &msgRect, DT_WORDBREAK | DT_CALCRECT);
+        int msgHeight = DrawTextA(hdc, cfg.message.c_str(), -1, &msgRect,
+                                  DT_WORDBREAK | DT_CALCRECT);
         msgRect.bottom = msgRect.top + msgHeight;
         DrawTextA(hdc, cfg.message.c_str(), -1, &msgRect, DT_WORDBREAK);
         y += msgHeight + 10;
     }
 
-    // 4. work.txt 内容
+    // 4. 显示天气
+    if (cfg.showWeather)
+    {
+        if (g_weatherLoading) {
+            TextOutA(hdc, leftMargin, y, _S(STR_WEATHER_LOADING),
+                     (int)strlen(_S(STR_WEATHER_LOADING)));
+            y += cfg.fontSize + 10;
+        } else if (g_weather.valid) {
+            std::string wx = g_weather.condition + " " + g_weather.temp
+                           + " " + _S(STR_HUMIDITY) + g_weather.humidity
+                           + " " + _S(STR_WIND) + g_weather.wind;
+            TextOutA(hdc, leftMargin, y, wx.c_str(), (int)wx.length());
+            y += cfg.fontSize + 10;
+        } else if (!cfg.weatherCity.empty()) {
+            TextOutA(hdc, leftMargin, y, _S(STR_WEATHER_FAILED),
+                     (int)strlen(_S(STR_WEATHER_FAILED)));
+            y += cfg.fontSize + 10;
+        }
+    }
+
+    // 5. work.txt 内容
     std::string workContent = ReadWorkFile();
     if (!workContent.empty())
     {
         RECT workRect = {leftMargin, y, leftMargin + maxWidth, clientHeight - 10};
-        int workHeight = DrawTextA(hdc, workContent.c_str(), -1, &workRect, DT_WORDBREAK | DT_CALCRECT);
+        int workHeight = DrawTextA(hdc, workContent.c_str(), -1, &workRect,
+                                   DT_WORDBREAK | DT_CALCRECT);
         workRect.bottom = workRect.top + workHeight;
         DrawTextA(hdc, workContent.c_str(), -1, &workRect, DT_WORDBREAK);
     }

@@ -2,6 +2,7 @@
 #include "../config/config.h"
 #include "../utils/logger.h"
 #include "../main.h"
+#include "../i18n.h"
 
 static INT_PTR CALLBACK MessageDlgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -9,6 +10,10 @@ static INT_PTR CALLBACK MessageDlgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
     {
         case WM_INITDIALOG:
         {
+            SetWindowTextA(hwnd, _S(STR_SET_MESSAGE));
+            SetDlgItemTextA(hwnd, IDC_STATIC_MSG_INPUT, _S(STR_MSG_INPUT_LABEL));
+            SetDlgItemTextA(hwnd, IDOK, _S(STR_OK));
+            SetDlgItemTextA(hwnd, IDCANCEL, _S(STR_CANCEL));
             SetDlgItemTextA(hwnd, IDC_EDIT_MESSAGE, AppConfig::GetInstance().message.c_str());
             return TRUE;
         }
