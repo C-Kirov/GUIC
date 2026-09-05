@@ -3,7 +3,13 @@
 #include <cstring>
 
 // 农历数据 (1900-2100)
-// 改为 unsigned int —— 表中多处数值超过 65535（如 0x16554, 0x1d255, 0x1d0b6 等）
+// 经典编码格式:
+//   bit 0-3:    闰月月份 (0=无闰月, 1-12=闰该月)
+//   bit 4-15:   12 个月大小, 1=30天, 0=29天；bit15=正月, bit14=二月, ... bit4=腊月
+//   bit 16:     闰月大小 (1=30天, 0=29天)；无闰月时该位为 0
+// 注：2097 年广为流传的版本为 0x0a4d0（六月30天/七月29天），
+//     经与香港天文台《公历与农历日期对照表 2097》核对应为 0x0a2d0（六月29天/七月30天）。
+//     （2057 年数据与天文台核对一致，无需修改。）
 static const unsigned int g_lunarInfo[] = {
     // 1900
     0x04bd8, 0x04ae0, 0x0a570, 0x054d5, 0x0d260, 0x0d950, 0x16554, 0x056a0,
@@ -30,7 +36,7 @@ static const unsigned int g_lunarInfo[] = {
     0x0a6d0, 0x055d4, 0x052d0, 0x0a9b8, 0x0a950, 0x0b4a0, 0x0b6a6, 0x0ad50,
     0x055a0, 0x0aba4, 0x0a5b0, 0x052b0, 0x0b273, 0x06930, 0x07337, 0x06aa0,
     0x0ad50, 0x14b55, 0x04b60, 0x0a570, 0x054e4, 0x0d160, 0x0e968, 0x0d520,
-    0x0daa0, 0x16aa6, 0x056d0, 0x04ae0, 0x0a9d4, 0x0a4d0, 0x0d150, 0x0f252,
+    0x0daa0, 0x16aa6, 0x056d0, 0x04ae0, 0x0a9d4, 0x0a2d0, 0x0d150, 0x0f252,
     0x0d520
 };
 
@@ -49,44 +55,44 @@ static const char* g_dayName[] = {
     "廿一","廿二","廿三","廿四","廿五","廿六","廿七","廿八","廿九","三十"
 };
 
-// 每一年编码:
-//   bit 0-11:  1-12 月大小 (1=30天, 0=29天), bit0=正月
-//   bit 12-15: 闰月月份 (0=无闰月, 1-12=闰该月)
-//   bit 16:    如果是闰月年，此位为闰月大小 (1=30天, 0=29天)
+static const int kLunarInfoCount = (int)(sizeof(g_lunarInfo) / sizeof(g_lunarInfo[0]));
 
+// 某农历年某月的天数；lunarMonth 为正表示普通月，为负表示闰月（负数取绝对值）
 static int GetLunarMonthDays(int lunarYear, int lunarMonth)
 {
     int idx = lunarYear - 1900;
-    if (idx < 0 || idx >= (int)(sizeof(g_lunarInfo)/sizeof(g_lunarInfo[0])))
+    if (idx < 0 || idx >= kLunarInfoCount)
         return 30;
 
     unsigned int info = g_lunarInfo[idx];
-    int leapMonth = (info >> 12) & 0xF;
+    int leapMonth = info & 0xF;
     bool isLeap = false;
 
     if (lunarMonth < 0) { isLeap = true; lunarMonth = -lunarMonth; }
-    if (lunarMonth > 12) return 30;
+    if (lunarMonth < 1 || lunarMonth > 12) return 0;
 
-    if (isLeap && lunarMonth == leapMonth) {
+    if (isLeap) {
+        if (lunarMonth != leapMonth) return 0;
         return (info & 0x10000) ? 30 : 29;
     }
 
-    int actualMonth = (lunarMonth > leapMonth && leapMonth > 0) ? lunarMonth - 1 : lunarMonth;
-    return (info & (1u << (actualMonth - 1))) ? 30 : 29;
+    // bit15=正月(月1), bit14=二月(月2), ..., bit4=腊月(月12)
+    return (info & (0x10000u >> lunarMonth)) ? 30 : 29;
 }
 
+// 某农历年的总天数
 static int GetLunarYearDays(int lunarYear)
 {
     int idx = lunarYear - 1900;
-    if (idx < 0 || idx >= (int)(sizeof(g_lunarInfo)/sizeof(g_lunarInfo[0])))
+    if (idx < 0 || idx >= kLunarInfoCount)
         return 354;
 
     unsigned int info = g_lunarInfo[idx];
     int days = 0;
-    int leapMonth = (info >> 12) & 0xF;
+    int leapMonth = info & 0xF;
 
     for (int m = 1; m <= 12; m++) {
-        days += (info & (1u << (m - 1))) ? 30 : 29;
+        days += (info & (0x10000u >> m)) ? 30 : 29;
     }
     if (leapMonth > 0) {
         days += (info & 0x10000) ? 30 : 29;
@@ -94,77 +100,71 @@ static int GetLunarYearDays(int lunarYear)
     return days;
 }
 
-// 获取某年春节对应的公历日期
-static SolarDate GetSpringFestival(int year)
-{
-    int idx = year - 1900;
-    SolarDate sf = { year, 1, 1 };
-    if (idx < 0 || idx >= (int)(sizeof(g_lunarInfo)/sizeof(g_lunarInfo[0])))
-        return sf;
-
-    static const unsigned char springFestivalDay[] = {
-        31,19, 8,29,16, 4,25,13, 2,22,10,30,18, 6,26,14, 3,23,11,28,  // 1900-1919
-        17, 8,28,16, 5,25,13, 2,23,10,30,17, 7,26,15, 4,24,11,31,19,  // 1920-1939
-         8,27,15, 5,25,13, 2,22,10,29,17, 6,27,15, 3,24,12,31,18, 8,  // 1940-1959
-        28,15, 5,25,13, 2,21, 9,30,17, 6,27,15, 3,23,11,31,18, 7,28,  // 1960-1979
-        16, 5,25,13, 2,20, 9,29,17, 6,27,15, 4,23,10,31,19, 7,28,16,  // 1980-1999
-         5,24,12, 1,22,10,29,18, 7,26,14, 3,23,10,31,19, 8,28,16, 5,  // 2000-2019
-        25,12, 1,22,10,29,17, 6,26,13, 3,23,11,31,19, 8,28,15, 5,24,  // 2020-2039
-        12, 1,21,10,29,18, 7,26,14, 3,22,10,30,18, 6,26,15, 4,23,11,  // 2040-2059
-        29,19, 7,27,16, 5,24,12, 1,22, 9,29,18, 6,26,13, 3,22,11,30,  // 2060-2079
-        18, 7,26,14, 3,24,12, 1,20, 9,29,17, 7,26,14, 3,23,10,31,19,  // 2080-2099
-         8                                                                   // 2100
-    };
-
-    sf.month = 1;
-    sf.day = springFestivalDay[idx];
-    if (sf.day > 31) { sf.month = 2; sf.day -= 31; }
-    return sf;
-}
-
-// 公历日期转年内第几天 (1-based)
-static int DayOfYear(const SolarDate& s)
-{
-    static const int monthDays[] = {0,31,28,31,30,31,30,31,31,30,31,30,31};
-    int d = s.day;
-    for (int m = 1; m < s.month; m++) {
-        d += monthDays[m];
-        if (m == 2 && ((s.year % 4 == 0 && s.year % 100 != 0) || s.year % 400 == 0))
-            d += 1;
-    }
-    return d;
-}
-
+// 公历日期转农历。
+// 以 1900-01-31（农历 1900 年正月初一）为锚点逐日推算，
+// 不再依赖逐年的春节公历日期表（该表对 2 月春节的年份会产生整月偏差）。
 LunarDate SolarToLunar(const SolarDate& solar)
 {
     LunarDate result = {0, 0, 0, false};
 
-    SolarDate sf = GetSpringFestival(solar.year);
-    int sfDayOfYear = DayOfYear(sf);
-    int solarDayOfYear = DayOfYear(solar);
+    if (solar.month < 1 || solar.month > 12 || solar.day < 1)
+        return result;
 
-    int daysDiff;
-    int lunarYear;
+    static const int monthDays[] = {0,31,28,31,30,31,30,31,31,30,31,30,31};
 
-    if (solarDayOfYear >= sfDayOfYear) {
-        daysDiff = solarDayOfYear - sfDayOfYear;
-        lunarYear = solar.year;
-    } else {
-        SolarDate sfPrev = GetSpringFestival(solar.year - 1);
-        int sfPrevDOY = DayOfYear(sfPrev);
-        int daysInPrevYear = ((solar.year - 1) % 4 == 0 && ((solar.year - 1) % 100 != 0))
-                             || ((solar.year - 1) % 400 == 0) ? 366 : 365;
-        daysDiff = solarDayOfYear + (daysInPrevYear - sfPrevDOY);
-        lunarYear = solar.year - 1;
+    // 该公历日期距 1900-01-01（第 0 天）的天数
+    long long offset = 0;
+    for (int y = 1900; y < solar.year; y++) {
+        offset += ((y % 4 == 0 && y % 100 != 0) || y % 400 == 0) ? 366 : 365;
+    }
+    int doy = solar.day;
+    for (int m = 1; m < solar.month; m++) {
+        doy += monthDays[m];
+        if (m == 2 && ((solar.year % 4 == 0 && solar.year % 100 != 0) || solar.year % 400 == 0))
+            doy += 1;
+    }
+    offset += (doy - 1);
+
+    // 距锚点 1900-01-31（农历 1900 年正月初一）的天数
+    long long days = offset - 30;
+
+    if (days < 0) {
+        // 数据表自 1900 年起；锚点前（1900-01-01 ~ 1900-01-30）属于农历 1899 年腊月。
+        // 1899 年腊月为 30 天：1900-01-01 = 腊月初一。
+        int day = (int)(31 + days);
+        if (day < 1) day = 1;   // 早于 1900-01-01 的日期无 1899 年表数据，取最早可表示日
+        result.year = 1899;
+        result.month = 12;
+        result.day = day;
+        result.isLeapMonth = false;
+        return result;
     }
 
-    int idx = lunarYear - 1900;
-    unsigned int info = g_lunarInfo[idx];
-    int leapMonth = (info >> 12) & 0xF;
-    int remaining = daysDiff;
+    // 逐年扣除，定位农历年
+    int lunarYear = 1900;
+    while (lunarYear < 1900 + kLunarInfoCount && days >= GetLunarYearDays(lunarYear)) {
+        days -= GetLunarYearDays(lunarYear);
+        lunarYear++;
+    }
+
+    if (lunarYear >= 1900 + kLunarInfoCount) {
+        // 超出 2100 年表尾（2101 年初），取 2100 年腊月最后一天
+        unsigned int info = g_lunarInfo[kLunarInfoCount - 1];
+        bool lastDay30 = (info & (0x10000u >> 12)) != 0;
+        result.year = 2100;
+        result.month = 12;
+        result.day = lastDay30 ? 30 : 29;
+        result.isLeapMonth = false;
+        return result;
+    }
+
+    // 月内定位（含闰月）
+    unsigned int info = g_lunarInfo[lunarYear - 1900];
+    int leapMonth = info & 0xF;
+    int remaining = (int)days;
 
     for (int m = 1; m <= 12; m++) {
-        int md = (info & (1u << (m - 1))) ? 30 : 29;
+        int md = (info & (0x10000u >> m)) ? 30 : 29;
         if (remaining < md) {
             result.year = lunarYear;
             result.month = m;
@@ -187,9 +187,11 @@ LunarDate SolarToLunar(const SolarDate& solar)
         }
     }
 
+    // 理论不可达（定位月份前已按整年扣除）；兜底为腊月最后一天
     result.year = lunarYear;
     result.month = 12;
-    result.day = remaining + 1;
+    result.day = 29 + (((info & (0x10000u >> 12)) != 0) ? 1 : 0);
+    result.isLeapMonth = false;
     return result;
 }
 

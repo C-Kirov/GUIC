@@ -16,7 +16,8 @@ GUIC_2.0/
 │   │   ├── utils.h / utils.cpp       # 工具函数（路径处理、ReadWorkFile）
 │   │   ├── logger.h / logger.cpp     # 日志系统（WriteLog、系统信息记录、LogWin32Error）
 │   │   ├── network.h / network.cpp   # SNTPv4 客户端 + Marzullo 多服务器共识 + Winsock 进程级初始化(WinsockInit/Shutdown)
-│   │   ├── lunar.h / lunar.cpp       # 公历↔农历转换（1900-2100 数据表）、天干地支/生肖
+│   │   ├── lunar_online.h / .cpp     # 在线农历（HKO 官方公历/农历对照表，HTTPS 拉取，离线本地兜底）
+│   │   ├── lunar.h / lunar.cpp       # 公历??农历转换（1900-2100 数据表）、天干地支/生肖
 │   │   ├── weather.h / weather.cpp   # wttr.in 天气客户端（UTF-8→ANSI，lang 随语言）
 │   │   ├── http_server.h / .cpp      # Web 控制面板（TCP 8080，HTML 页面国际化，/set 可切换语言）
 │   │   ├── ntp_server.h / .cpp       # 局域网 NTP 服务器（UDP 123，stratum 2，UDP 后台线程）
@@ -57,19 +58,3 @@ Winsock 生命周期（修复后）：
   GetNetworkTime/FetchWeather 仅防御性调用 WinsockInit()，不再各自 WSAStartup/WSACleanup；
   HTTP/NTP 服务器线程因此不再出现 WSANOTINITIALISED(10093) 错误。
 
-
-========================================
-wxWidgets 迁移版（wxport/）
-========================================
-wx 版为独立工程（与 WinAPI 版完全隔离）：C:\Users\czz18\Desktop\AIWorkSpace\GUIC2.0-wx\
-基于 wxWidgets 3.3 (MinGW-w64 静态库, C:\wxWidgets) 的完整 GUI 迁移版：
-  main.cpp          wxApp 入口（配置/服务器恢复/退出清理）
-  frame.h/.cpp      主窗口（菜单/定时器/服务器控制/无边框 WM_NCHITTEST）/绘制
-  renderer.h/.cpp   wxDC 双缓冲绘制（时钟/农历/倒计时/消息/天气/work.txt）
-  dialogs.h/.cpp    全部对话框（消息/倒计时/窗口/字体/颜色/特殊日期/端口/世界时钟/模拟时钟/关于）
-  i18n.h/.cpp       国际化字符串表（UTF-8 源码 + wxString::FromUTF8）
-  i18n_compat.cpp   旧 i18nGet 兼容（共享逻辑层 GBK 输出）
-  CMakeLists.txt    独立构建脚本
-共享逻辑层（config/network/weather/lunar/http_server/ntp_server/logger/utils）直接复用 ../src 源码。
-构建：cd wxport && cmake -G "MinGW Makefiles" -B build && cmake --build build
-产物：build/GUIC_2_wx.exe（UTF-8 源码、静态链接；Win32 版 GUIC_2.exe 保留不变）

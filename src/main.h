@@ -13,6 +13,7 @@
 // 自定义消息
 #define WM_WEATHER_READY    (WM_APP + 1)   // 天气获取完成
 #define WM_TRAY_ICON        (WM_APP + 2)   // 托盘图标消息（预留）
+#define WM_LUNAR_READY      (WM_APP + 3)   // 在线农历获取完成
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 

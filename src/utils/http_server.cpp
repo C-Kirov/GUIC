@@ -12,11 +12,15 @@
 #include "network.h"
 #include "logger.h"
 #include "lunar.h"
+#include "lunar_online.h"
 #include <cstdio>
 #include <cstring>
 #include <string>
 #include <sstream>
 #include <ctime>
+
+// 在线农历数据（windowproc.cpp 提供）
+extern LunarOnlineData g_lunarOnline;
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -73,8 +77,24 @@ static std::string BuildHtmlPage()
     SYSTEMTIME st;
     cfg.GetCurrentDateTime(st);
 
-    SolarDate sd = { (int)st.wYear, (int)st.wMonth, (int)st.wDay };
-    LunarDate ld = SolarToLunar(sd);
+    // 农历（在线同步优先，失败回退本地计算）
+    std::string tdgz, sx, lunarStr;
+    if (g_lunarOnline.valid &&
+        g_lunarOnline.fetchTime.wYear == st.wYear &&
+        g_lunarOnline.fetchTime.wMonth == st.wMonth &&
+        g_lunarOnline.fetchTime.wDay == st.wDay) {
+        LunarDate ld = { g_lunarOnline.lunarYear, g_lunarOnline.lunarMonth,
+                         g_lunarOnline.lunarDay, g_lunarOnline.isLeapMonth };
+        tdgz = GetTianGanDiZhi(ld.year);
+        sx = GetShengXiao(ld.year);
+        lunarStr = LunarToString(ld);
+    } else {
+        SolarDate sd = { (int)st.wYear, (int)st.wMonth, (int)st.wDay };
+        LunarDate ld = SolarToLunar(sd);
+        tdgz = GetTianGanDiZhi(ld.year);
+        sx = GetShengXiao(ld.year);
+        lunarStr = LunarToString(ld);
+    }
 
     std::ostringstream html;
     html << "<!DOCTYPE html><html><head><meta charset=\"gbk\">"
@@ -103,8 +123,8 @@ static std::string BuildHtmlPage()
          << (st.wMinute<10?"0":"") << st.wMinute << ":"
          << (st.wSecond<10?"0":"") << st.wSecond
          << "</div>"
-         << "<div class=\"label\">" << GetTianGanDiZhi(ld.year) << GetShengXiao(ld.year)
-         << "年 " << LunarToString(ld) << "</div>"
+         << "<div class=\"label\">" << tdgz << sx
+         << "年 " << lunarStr << "</div>"
          << "</div>"
 
          << "<div class=\"card\">"

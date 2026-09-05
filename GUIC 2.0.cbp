@@ -15,7 +15,7 @@
 				</Compiler>
 				<Linker>
 					<Add option="-static" />
-					<Add option="-static-libgcc -static-libstdc++ -lws2_32 -lole32" />
+					<Add option="-static-libgcc -static-libstdc++ -lws2_32 -lole32 -lwinhttp" />
 				</Linker>
 			</Target>
 		</Build>
@@ -58,6 +58,8 @@
 		<Unit filename="src/utils/logger.h" />
 		<Unit filename="src/utils/lunar.cpp" />
 		<Unit filename="src/utils/lunar.h" />
+		<Unit filename="src/utils/lunar_online.cpp" />
+		<Unit filename="src/utils/lunar_online.h" />
 		<Unit filename="src/utils/network.cpp" />
 		<Unit filename="src/utils/network.h" />
 		<Unit filename="src/utils/ntp_server.cpp" />

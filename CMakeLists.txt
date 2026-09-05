@@ -17,6 +17,7 @@ add_executable(GUIC_2
     src/utils/renderer.cpp
     src/utils/utils.cpp
     src/utils/lunar.cpp
+    src/utils/lunar_online.cpp
     src/utils/weather.cpp
     src/utils/http_server.cpp
     src/utils/ntp_server.cpp
@@ -30,7 +31,7 @@ add_executable(GUIC_2
 target_compile_options(GUIC_2 PRIVATE -std=gnu++14 -m64)
 target_link_options(GUIC_2 PRIVATE -static -mwindows)
 target_link_libraries(GUIC_2
-    ws2_32 ole32 gdi32 comdlg32 uuid oleaut32
+    ws2_32 ole32 gdi32 comdlg32 uuid oleaut32 winhttp
 )
 
 # 构建产物统一输出到 build/ 目录（与 Code::Blocks 的 build/GUIC_2.exe 保持同一位置）

@@ -4,6 +4,7 @@
 #include "utils/renderer.h"
 #include "utils/gdi_utils.h"
 #include "utils/lunar.h"
+#include "utils/lunar_online.h"
 #include "utils/weather.h"
 #include "utils/utils.h"
 #include "utils/ntp_server.h"
@@ -17,6 +18,9 @@
 
 WeatherInfo g_weather;
 bool        g_weatherLoading = false;
+LunarOnlineData g_lunarOnline = {false, -1, {0}, 0, 0, 0, false};
+bool        g_lunarOnlineLoading = false;
+static FILETIME g_lastLunarAttempt = {0, 0};
 
 // 子菜单句柄（用于刷新复选状态）
 static HMENU g_hSubSettings = NULL;
@@ -143,6 +147,17 @@ static DWORD WINAPI WeatherThreadProc(LPVOID param)
     WeatherInfo info = FetchWeather(cfg.weatherCity);
     WeatherInfo* pInfo = new WeatherInfo(info);
     PostMessage(hwnd, WM_WEATHER_READY, (WPARAM)pInfo, 0);
+    return 0;
+}
+
+static DWORD WINAPI LunarOnlineThreadProc(LPVOID param)
+{
+    HWND hwnd = (HWND)param;
+    SYSTEMTIME st;
+    GetLocalTime(&st);
+    LunarOnlineData* pData = new LunarOnlineData();
+    FetchOnlineLunar(st, *pData);
+    PostMessage(hwnd, WM_LUNAR_READY, (WPARAM)pData, 0);
     return 0;
 }
 
@@ -363,6 +378,18 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             break;
         }
 
+        case WM_LUNAR_READY:
+        {
+            LunarOnlineData* pData = (LunarOnlineData*)wParam;
+            if (pData) {
+                g_lunarOnline = *pData;
+                delete pData;
+                g_lunarOnlineLoading = false;
+                InvalidateRect(hwnd, NULL, TRUE);
+            }
+            break;
+        }
+
         case WM_PAINT:
         {
             PAINTSTRUCT ps;
@@ -386,6 +413,35 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case WM_TIMER:
             if (wParam == 1) {
                 InvalidateRect(hwnd, NULL, FALSE);
+
+                // 在线农历：跨天刷新；获取失败时每 30 分钟重试
+                SYSTEMTIME now;
+                GetLocalTime(&now);
+                bool needLunar;
+                if (g_lunarOnline.valid) {
+                    needLunar = (g_lunarOnline.fetchTime.wYear != now.wYear ||
+                                g_lunarOnline.fetchTime.wMonth != now.wMonth ||
+                                g_lunarOnline.fetchTime.wDay != now.wDay);
+                } else {
+                    // 失败重试：距上次尝试 >= 30 分钟（1.8e10 * 100ns）
+                    FILETIME nowFt;
+                    GetSystemTimeAsFileTime(&nowFt);
+                    ULARGE_INTEGER uNow, uLast;
+                    uNow.LowPart = nowFt.dwLowDateTime; uNow.HighPart = nowFt.dwHighDateTime;
+                    uLast.LowPart = g_lastLunarAttempt.dwLowDateTime; uLast.HighPart = g_lastLunarAttempt.dwHighDateTime;
+                    if (uLast.QuadPart == 0) {
+                        needLunar = true;   // 从未尝试过，立即获取
+                    } else {
+                        needLunar = (uNow.QuadPart - uLast.QuadPart) >= 18000000000ULL;
+                    }
+                }
+                if (needLunar && !g_lunarOnlineLoading) {
+                    g_lunarOnlineLoading = true;
+                    GetSystemTimeAsFileTime(&g_lastLunarAttempt);
+                    HANDLE hLunar = CreateThread(NULL, 0, LunarOnlineThreadProc, hwnd, 0, NULL);
+                    if (hLunar) CloseHandle(hLunar);
+                    else g_lunarOnlineLoading = false;
+                }
             } else if (wParam == 2) {
                 HANDLE hThread = CreateThread(NULL, 0, [](LPVOID) -> DWORD {
                     AppConfig::GetInstance().SyncNetworkTime();

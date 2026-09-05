@@ -3,6 +3,7 @@
 #include "utils.h"
 #include "gdi_utils.h"
 #include "lunar.h"
+#include "lunar_online.h"
 #include "weather.h"
 #include "../main.h"
 #include "../i18n.h"
@@ -11,6 +12,7 @@
 // 外部引用（来自 windowproc.cpp 的静态变量）
 extern WeatherInfo g_weather;
 extern bool        g_weatherLoading;
+extern LunarOnlineData g_lunarOnline;
 
 void Renderer::Draw(HWND hwnd, HDC hdc)
 {
@@ -56,13 +58,25 @@ void Renderer::Draw(HWND hwnd, HDC hdc)
             displayStr += " [" + specialDay + "]";
         }
 
-        // 农历显示
+        // 农历显示（在线同步优先，失败回退本地计算）
         if (cfg.showLunar) {
-            SolarDate sd = { (int)st.wYear, (int)st.wMonth, (int)st.wDay };
-            LunarDate ld = SolarToLunar(sd);
-            std::string lunarStr = LunarToString(ld);
-            std::string tdgz = GetTianGanDiZhi(ld.year);
-            std::string sx = GetShengXiao(ld.year);
+            std::string lunarStr, tdgz, sx;
+            if (g_lunarOnline.valid &&
+                g_lunarOnline.fetchTime.wYear == st.wYear &&
+                g_lunarOnline.fetchTime.wMonth == st.wMonth &&
+                g_lunarOnline.fetchTime.wDay == st.wDay) {
+                LunarDate ld = { g_lunarOnline.lunarYear, g_lunarOnline.lunarMonth,
+                                 g_lunarOnline.lunarDay, g_lunarOnline.isLeapMonth };
+                lunarStr = LunarToString(ld);
+                tdgz = GetTianGanDiZhi(ld.year);
+                sx = GetShengXiao(ld.year);
+            } else {
+                SolarDate sd = { (int)st.wYear, (int)st.wMonth, (int)st.wDay };
+                LunarDate ld = SolarToLunar(sd);
+                lunarStr = LunarToString(ld);
+                tdgz = GetTianGanDiZhi(ld.year);
+                sx = GetShengXiao(ld.year);
+            }
             char lunarBuf[128];
             sprintf(lunarBuf, "  [%s%s年 %s]", tdgz.c_str(), sx.c_str(), lunarStr.c_str());
             displayStr += lunarBuf;
