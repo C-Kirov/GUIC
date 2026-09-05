@@ -15,12 +15,12 @@ GUIC_2.0/
 │   ├── utils/
 │   │   ├── utils.h / utils.cpp       # 工具函数（路径处理、ReadWorkFile）
 │   │   ├── logger.h / logger.cpp     # 日志系统（WriteLog、系统信息记录、LogWin32Error）
-│   │   ├── network.h / network.cpp   # SNTPv4 客户端 + Marzullo 多服务器共识 + Winsock 进程级初始化(WinsockInit/Shutdown)
+│   │   ├── network.h / network.cpp   # SNTPv4 客户端（RFC 5905 标准报文）+ Marzullo 多服务器共识 + Winsock 进程级初始化
 │   │   ├── lunar_online.h / .cpp     # 在线农历（HKO 官方公历/农历对照表，HTTPS 拉取，离线本地兜底）
 │   │   ├── lunar.h / lunar.cpp       # 公历??农历转换（1900-2100 数据表）、天干地支/生肖
 │   │   ├── weather.h / weather.cpp   # wttr.in 天气客户端（UTF-8→ANSI，lang 随语言）
 │   │   ├── http_server.h / .cpp      # Web 控制面板（TCP 8080，HTML 页面国际化，/set 可切换语言）
-│   │   ├── ntp_server.h / .cpp       # 局域网 NTP 服务器（UDP 123，stratum 2，UDP 后台线程）
+│   │   ├── ntp_server.h / .cpp       # 局域网 NTP 服务器（UDP 123，stratum 2，RFC 5905 标准应答，后台线程）
 │   │   ├── renderer.h / renderer.cpp # 主窗口双缓冲绘制引擎（时钟/倒计时/消息/天气/work.txt）
 │   │   └── gdi_utils.h               # GDI 资源 RAII 封装（ScopedPen/Brush/Font/DC/Bitmap）
 │   │

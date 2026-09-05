@@ -28,4 +28,9 @@ bool GetNetworkTime(SYSTEMTIME& st,
 
 bool QuerySingleNtpServer(const char* server, NTPQueryResult& result);
 
+// ======================== 本机 NTP 同步状态（局域网 NTP 服务器引用：stratum-2 根信息） ========================
+extern uint32_t g_ntpRootDelayFix;     // 16.16 定点：到上游参考时钟的网络延迟
+extern uint32_t g_ntpRootDispersion;   // 16.16 定点：同步不确定性
+extern uint64_t g_ntpRefTimestamp;     // 最近成功同步时刻（NTP 时间戳，网络字节序）
+
 #endif // NETWORK_H

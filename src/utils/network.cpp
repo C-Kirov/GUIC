@@ -98,6 +98,11 @@ static const int64_t  MAX_DELAY_100NS = 50000000LL;
 // 最大可接受偏移（100ns 单位）：3600 秒（1 小时）
 static const int64_t  MAX_OFFSET_100NS = 3600LL * 10000000LL;
 
+// ======================== 本机 NTP 同步状态（局域网 NTP 服务器引用） ========================
+uint32_t g_ntpRootDelayFix   = 0;   // 16.16 定点：到上游参考时钟的网络延迟
+uint32_t g_ntpRootDispersion = 0;   // 16.16 定点：同步不确定性
+uint64_t g_ntpRefTimestamp   = 0;   // 最近成功同步时刻（NTP 时间戳，网络字节序）
+
 // ======================== NTP 数据包（RFC 5905, 48 字节） ========================
 #pragma pack(push, 1)
 struct NTPPacket
@@ -126,6 +131,16 @@ static inline uint64_t ntoh64(uint64_t x)
     u.u64 = x;
     uint32_t tmp = ntohl(u.u32[0]);
     u.u32[0] = ntohl(u.u32[1]);
+    u.u32[1] = tmp;
+    return u.u64;
+}
+
+static inline uint64_t hton64(uint64_t x)
+{
+    union { uint64_t u64; uint32_t u32[2]; } u;
+    u.u64 = x;
+    uint32_t tmp = htonl(u.u32[0]);
+    u.u32[0] = htonl(u.u32[1]);
     u.u32[1] = tmp;
     return u.u64;
 }
@@ -265,13 +280,16 @@ bool QuerySingleNtpServer(const char* server, NTPQueryResult& result)
     }
     serverAddr.sin_port = htons(NTP_PORT);
 
-    // ---- 构建 NTPv4 请求 ----
+    // ---- 构建 NTPv4 请求（RFC 5905 标准客户端过程）----
     NTPPacket request = {};
     request.li_vn_mode = (0 << 6) | (4 << 3) | 3;   // Leap=0, Version=4, Mode=3(Client)
+    request.poll       = 6;                          // 客户端轮询间隔 2^6 = 64 秒
 
-    // ---- 记录 t1（发送前的高精度时刻）----
+    // ---- 记录 t1 并填入请求的发送时间戳（RFC 5905 必填）----
     FILETIME ftT1;
-    GetSystemTimePreciseAsFileTime(&ftT1);
+    GetSystemTimeAsFileTime(&ftT1);
+    uint64_t t1_ntp = FileTimeToNtp(ftT1);
+    request.xmitTimestamp = hton64(t1_ntp);
 
     // ---- 发送请求 ----
     int sentBytes = sendto(sock, (char*)&request, sizeof(request), 0,
@@ -294,7 +312,7 @@ bool QuerySingleNtpServer(const char* server, NTPQueryResult& result)
                            (struct sockaddr*)&fromAddr, &fromLen);
 
     FILETIME ftT4;
-    GetSystemTimePreciseAsFileTime(&ftT4);
+    GetSystemTimeAsFileTime(&ftT4);
 
     closesocket(sock);
 
@@ -352,8 +370,32 @@ bool QuerySingleNtpServer(const char* server, NTPQueryResult& result)
         return false;
     }
 
+    // ---- RFC 5905 响应校验：模式应为 4 (Server)、版本 3/4、来源时间戳须与请求一致 ----
+    uint8_t respMode = response.li_vn_mode & 0x07;
+    uint8_t respVn   = (response.li_vn_mode >> 3) & 0x07;
+    if (respMode != 4)
+    {
+        char buf[160];
+        sprintf(buf, "[NTP] 响应模式异常 (mode=%d), 丢弃 [%s]", respMode, server);
+        WriteLog(buf);
+        return false;
+    }
+    if (respVn < 3 || respVn > 4)
+    {
+        char buf[160];
+        sprintf(buf, "[NTP] 响应版本异常 (vn=%d), 丢弃 [%s]", respVn, server);
+        WriteLog(buf);
+        return false;
+    }
+    if (rx_orig == 0 || rx_orig != t1_ntp)
+    {
+        char buf[160];
+        sprintf(buf, "[NTP] 来源时间戳不匹配, 丢弃 [%s]", server);
+        WriteLog(buf);
+        return false;
+    }
+
     // ---- 转换为 NTP 时间戳 ----
-    uint64_t t1_ntp = FileTimeToNtp(ftT1);
     uint64_t t4_ntp = FileTimeToNtp(ftT4);
 
     // 优先使用服务器返回的 t2 (recvTimestamp), t3 (xmitTimestamp)
@@ -753,6 +795,17 @@ bool GetNetworkTime(SYSTEMTIME& st,
     // ---- 5. 输出参数 ----
     if (pBestOffset100ns) *pBestOffset100ns = bestOffset;
     if (pBestDelay100ns)  *pBestDelay100ns  = bestDelay;
+
+    // ---- 5.5 更新本机同步状态（供局域网 NTP 服务器作为 stratum-2 根信息）----
+    {
+        double delayMs    = bestDelay / 10000.0;
+        double dispMs     = delayMs + 2.0;                 // 含约 2ms 基础误差
+        uint32_t rd  = (uint32_t)(delayMs * 65.536);       // ms -> 16.16 定点
+        uint32_t rsp = (uint32_t)(dispMs  * 65.536);
+        g_ntpRootDelayFix   = (rd  < 0x7FFFFFFF) ? rd  : 0x7FFFFFFF;
+        g_ntpRootDispersion = (rsp < 0x7FFFFFFF) ? rsp : 0x7FFFFFFF;
+        g_ntpRefTimestamp   = hton64(FileTime100nsToNtp(ulUtc.QuadPart));
+    }
 
     char buf[256];
     sprintf(buf,

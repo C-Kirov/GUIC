@@ -126,6 +126,11 @@ static DWORD WINAPI NtpServerThread(LPVOID param)
         if (len <= 0) continue;
         if (len != sizeof(request)) continue;
 
+        // ====== RFC 5905：仅应答标准 NTP 客户端请求（模式 3，版本 1-4） ======
+        int reqMode = request.li_vn_mode & 0x07;
+        int reqVn   = (request.li_vn_mode >> 3) & 0x07;
+        if (reqMode != 3 || reqVn < 1 || reqVn > 4) continue;
+
         // ====== 【修复】使用 GetSystemTimeAsFileTime 替代 GetSystemTimePreciseAsFileTime ======
         // GetSystemTimePreciseAsFileTime 需要 Win8+ (_WIN32_WINNT >= 0x0602)
         // 对 NTP 服务器而言，毫秒级精度已足够（NTP 本身 ms 级别精度）
@@ -135,13 +140,21 @@ static DWORD WINAPI NtpServerThread(LPVOID param)
         NtpServerPacket response;
         memset(&response, 0, sizeof(response));
 
-        response.li_vn_mode = (0 << 6) | (4 << 3) | 4;  // Leap=0, Version=4, Mode=4(Server)
+        // RFC 5905：响应版本回显客户端（3 或 4），模式 4 (Server)
+        int respVn = (reqVn >= 3) ? reqVn : 4;
+        response.li_vn_mode = (0 << 6) | (respVn << 3) | 4;
         response.stratum    = 2;
+        response.poll       = 6;                     // 建议轮询间隔 2^6 = 64 秒
         response.precision  = -20;
 
-        uint32_t refId = 0x7F000001;
+        // stratum-2 根信息（取最近一次与上游网络时间同步的结果）
+        response.rootDelay      = htonl(g_ntpRootDelayFix);
+        response.rootDispersion = htonl(g_ntpRootDispersion);
+        uint32_t refId = 0x7F000001;          // 参考源地址（本机）
         memcpy(&response.refId, &refId, 4);
+        response.refTimestamp = g_ntpRefTimestamp;   // 网络字节序：最近同步时刻
 
+        // RFC 5905：来源时间戳原样回显客户端请求中的发送时间戳（保持字节序）
         response.origTimestamp = request.xmitTimestamp;
 
         uint64_t recvNtp = FileTimeToNtp64(ftRecv);
